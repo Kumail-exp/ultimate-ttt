@@ -13,7 +13,18 @@ class Row{
         value|=val<< (24- (3 * index));
 
     }
-    std::string str(){
+    std::string bin_str(){
         return std::bitset<32>(value).to_string();
+    }
+    std::string str(){
+        std::string val="";
+        for(int i=0;i<9;i++){
+            if(i%3==0){
+                val+=" ";
+            }
+            int out=cellAt(i);
+            val+=out==0?"-":(out==1?"O":(out==2?"X":"#"));
+        }
+        return val;
     }
 };
