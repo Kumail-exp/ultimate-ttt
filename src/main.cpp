@@ -7,8 +7,12 @@ int main(){
     while(true){
         b.print();
         cin>>r;
-        cin>>c;
-        b.move(r,c);
+        if(b.freemove){
+            cin>>c;
+            b.move(r,c);
+        }else{
+            b.move(r);
+        }
     }
     return 0;
 }
