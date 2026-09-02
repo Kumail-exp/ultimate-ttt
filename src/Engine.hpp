@@ -1,0 +1,56 @@
+#pragma once
+#include "Board.hpp"
+#include "Eval.hpp"
+#include <cmath>
+
+
+float minmax(Board b,int depth,bool maximising){
+    if(depth==0){
+        return Eval(b);
+    }
+    int w=b.winnercheck();
+    if(w!=0){
+        return INFINITY*(w==1?1:-1);
+    }
+    if(maximising){
+        float max_eval=-INFINITY;
+        for(Move x: b.legalMoves()){
+            b.move(x.smallidx,x.bigidx);
+            float eval = minmax(b, depth - 1, false);
+            b.pop(x.smallidx,x.bigidx);
+            if(eval>max_eval){
+                max_eval=eval;
+            }
+        }
+        return max_eval;
+    }else{
+        float min_eval=INFINITY;
+        for(Move x: b.legalMoves()){
+            b.move(x.smallidx,x.bigidx);
+            float eval = minmax(b, depth - 1, true);
+            b.pop(x.smallidx,x.bigidx);
+            if(eval<min_eval){
+                min_eval=eval;
+            }
+        }
+        return min_eval;
+    }
+}
+struct Line{
+    Move move;
+    float eval;
+};
+Line best_move(int depth, bool maximising,Board b){
+    Line best = {{-1,-1}, -INFINITY};
+
+    for (Move x : b.legalMoves()) {
+        b.move(x.smallidx, x.bigidx);
+        float result = minmax(b, depth - 1, false);
+        b.pop(x.smallidx, x.bigidx);
+
+        if (result > best.eval) {
+            best = {x, result};  // x is the actual root move
+        }
+    }
+    return best;
+}

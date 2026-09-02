@@ -29,6 +29,29 @@ class Board{
             std::cout<<board[i].str()<<std::endl;
         }
     }
+    int winnercheck(){
+        int r[3]={1,1,1},c[3]={1,1,1},d[2]={1,1};
+        for(int i=0;i<3;i++){
+            for(int j=0;j<3;j++){
+                int e=winners[3*i+j];
+                r[i]*=e;
+                c[j]*=e;
+                if(i==j){
+                    d[0]*=e;
+                }
+                if(i+j==2){
+                    d[1]*=e;
+                }
+            }
+        }
+        for(int i=0;i<3;i++){
+            if(r[i]==1 || c[i]==1 ) return 1;
+            if(r[i]==8 || c[i]==8 ) return 2;
+        }
+        if(d[0]==1 || d[1]==1 ) return 1;
+        if(d[0]==8 || d[1]==8 ) return 2;
+        return 0;
+    }
     bool isValid(int r, int c) {
         if (winners[(r / 3) * 3 + (c / 3)] != 0) {
             return false;
@@ -96,7 +119,7 @@ class Board{
         int br=cellno/3,bc=cellno%3;
         int sr=smallidx/3,sc=smallidx%3;
         if (!isValid(br*3+sr,bc*3+sc)) {
-            std::cerr << "Invalid" << std::endl;
+            // std::cerr << "Invalid:" <<smallidx<<","<<cellno<< std::endl;
             return;
         }
         set(br*3+sr,bc*3+sc,(Aturn?1:2));

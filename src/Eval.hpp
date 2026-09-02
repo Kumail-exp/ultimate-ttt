@@ -3,7 +3,7 @@
 Move relToUni(Move m){
     return {(m.bigidx/3)*3+(m.smallidx/3),(m.bigidx%3)*3+(m.smallidx%3)};
 }
-float weights[9]={1.44,1,1.44,1,1.71,1.44,1.44,1,1.44};
+float weights[9]={1.44,1,1.44,1,1.71,1,1.44,1,1.44};
 float evalCell(int bigidx,Board b){
     int x[3]={0},o[3]={0};
     //row 
