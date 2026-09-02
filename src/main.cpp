@@ -12,8 +12,11 @@ int main(){
     while(b.winnercheck()==0){
         b.print();
         if(b.Aturn){
+            cout<<"to play in "<<b.nextBig<<endl;
+            cout<<"enter smallidx>";
             cin>>r;
             if(b.freemove){
+                cout<<"enter bigidx>";
                 cin>>c;
                 b.move(r,c);
             }else{

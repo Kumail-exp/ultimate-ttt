@@ -5,12 +5,12 @@
 
 
 float minmax(Board b,int depth,bool maximising){
-    if(depth==0){
-        return Eval(b);
-    }
     int w=b.winnercheck();
     if(w!=0){
         return INFINITY*(w==1?1:-1);
+    }
+    if(depth==0){
+        return Eval(b);
     }
     if(maximising){
         float max_eval=-INFINITY;
@@ -40,17 +40,21 @@ struct Line{
     Move move;
     float eval;
 };
-Line best_move(int depth, bool maximising,Board b){
-    Line best = {{-1,-1}, -INFINITY};
+Line best_move(int depth, bool maximising, Board b) {
+    Line best = {{-1,-1}, maximising ? -INFINITY : INFINITY};
 
     for (Move x : b.legalMoves()) {
         b.move(x.smallidx, x.bigidx);
-        float result = minmax(b, depth - 1, false);
+        float result = minmax(b, depth - 1, !maximising);
         b.pop(x.smallidx, x.bigidx);
-
-        if (result > best.eval) {
-            best = {x, result};  // x is the actual root move
+        if (maximising) {
+            if (result > best.eval)
+                best = {x, result};
+        } else {
+            if (result < best.eval)
+                best = {x, result};
         }
     }
+
     return best;
 }
