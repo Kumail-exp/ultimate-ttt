@@ -1,6 +1,10 @@
 #pragma once
 #include "Row.hpp"
 #include <iostream>
+#include <vector>
+struct Move{
+    int smallidx,bigidx;
+};
 class Board{
     public:
     Row board[9];
@@ -59,6 +63,25 @@ class Board{
                 }
             }
         }
+    }
+    std::vector<Move> legalMoves(){
+        std::vector<Move> moves;
+        if(!freemove){
+            for(int i=0;i<9;i++){
+                if(isValid((nextBig/3)*3+(i/3),(nextBig%3)*3+(i%3))){
+                    moves.push_back({i,nextBig});
+                }
+            }
+            return moves;
+        }
+        for(int r=0;r<9;r++){
+            for(int i=0;i<9;i++){
+                if(isValid((r/3)*3+(i/3),(r%3)*3+(i%3))){
+                        moves.push_back({i,r});
+                }
+            }
+        }
+        return moves;
     }
     void move(int smallidx,int cellno=-1){
         //assuming the player always playes legal move;
