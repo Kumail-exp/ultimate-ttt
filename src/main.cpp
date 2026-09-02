@@ -1,4 +1,5 @@
 #include "Board.hpp"
+#include "Eval.hpp"
 #include <iostream>
 using namespace std;
 int main(){
@@ -6,11 +7,7 @@ int main(){
     int r,c;
     while(true){
         b.print();
-        for(Move x :b.legalMoves()){
-
-            std::cout<<"("<<x.smallidx<<","<<x.bigidx<<"),";
-        }
-        std::cout<<"\n";
+        cout<<"eval:"<<Eval(b)<<endl;
         cin>>r;
         if(b.freemove){
             cin>>c;

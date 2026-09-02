@@ -15,6 +15,10 @@ class Board{
     int get(int r,int c){
         return board[r].cellAt(c);
     }
+    int get(Move m){
+        //assuming that the m has r,c in pace of smallidx,bigidx
+        return board[m.smallidx].cellAt(m.bigidx);
+    }
     void set(int r,int c,u_int8_t val){
         board[r].change(c,val);
     }

@@ -23,7 +23,7 @@ class Row{
                 val+=" ";
             }
             int out=cellAt(i);
-            val+=out==0?"-":(out==1?"O":(out==2?"X":"#"));
+            val+=out==0?"-":(out==1?"x":(out==2?"o":"#"));
         }
         return val;
     }
