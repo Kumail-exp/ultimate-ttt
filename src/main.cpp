@@ -6,9 +6,6 @@ using namespace std;
 int main(){
     Board b;
     int r,c;
-    int depth;
-    cout<<"enter depth for bot to calculate at:";
-    cin>>depth;
     while(b.winnercheck()==0){
         b.print();
         if(b.Aturn){
@@ -23,9 +20,11 @@ int main(){
                 b.move(r);
             }
         }else{
-            Line l=best_move(depth,false,b);
+            Line l=tbest_move(5,false,b);
+            
             b.move(l.move.smallidx,l.move.bigidx);
             cout<<"evaluation:"<<l.eval<<endl;
+            cout<<"depth:"<<l.depth<<endl;
         }
     }
     b.print();

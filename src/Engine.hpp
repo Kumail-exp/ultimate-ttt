@@ -2,6 +2,7 @@
 #include "Board.hpp"
 #include "Eval.hpp"
 #include <cmath>
+#include <chrono>
 
 
 float minmax(Board b,int depth,bool maximising){
@@ -41,6 +42,7 @@ float minmax(Board b,int depth,bool maximising){
 struct Line{
     Move move;
     float eval;
+    int depth;
 };
 Line best_move(int depth, bool maximising, Board b) {
     Line best = {{-1,-1}, maximising ? -INFINITY : INFINITY};
@@ -51,12 +53,29 @@ Line best_move(int depth, bool maximising, Board b) {
         b.pop(x.smallidx, x.bigidx,rtg);
         if (maximising) {
             if (result > best.eval)
-                best = {x, result};
+                best = {x, result,depth};
         } else {
             if (result < best.eval)
-                best = {x, result};
+                best = {x, result,depth};
         }
     }
 
     return best;
+}
+Line tbest_move(float time_ms,bool maximising, Board b){
+    double t=0.0;
+    using Clock = std::chrono::high_resolution_clock;
+    Line l={{-1,-1},0,0};
+    for(int i=1;i<25;i++){
+        if(time_ms/9<=t){
+            break;
+        }
+        auto start = Clock::now();
+        l=best_move(i,maximising,b);
+        auto end = Clock::now();
+        
+        std::chrono::duration<double> elapsed = end - start;
+        t+=elapsed.count();
+    }
+    return l;
 }
