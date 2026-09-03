@@ -21,7 +21,7 @@ int main(){
             }
         }else{
             Line l=tbest_move(5,false,b);
-            
+            cout<<"bot playes"<<l.move.smallidx<<","<<l.move.bigidx<<endl;
             b.move(l.move.smallidx,l.move.bigidx);
             cout<<"evaluation:"<<l.eval<<endl;
             cout<<"depth:"<<l.depth<<endl;

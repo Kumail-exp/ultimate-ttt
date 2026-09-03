@@ -39,6 +39,52 @@ float minmax(Board b,int depth,bool maximising){
         return min_eval;
     }
 }
+float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
+    int w=b.winnercheck();
+    if(w!=0){
+        return INFINITY*(w==1?1:-1);
+    }
+    if(depth==0){
+        return Eval(b);
+    }
+    if(maximising){
+        float max_eval=-INFINITY;
+        int rtg=b.nextBig;
+        for(Move x: b.legalMoves()){
+            b.move(x.smallidx,x.bigidx);
+            float eval = minmax_ab(b, depth - 1, false,alpha,beta);
+            b.pop(x.smallidx,x.bigidx,rtg);
+            if(eval>max_eval){
+                max_eval=eval;
+            }
+            if(eval>alpha){
+                alpha=eval;
+            }
+            if(beta<=alpha){
+                break;
+            }
+        }
+        return max_eval;
+    }else{
+        float min_eval=INFINITY;
+        int rtg=b.nextBig;
+        for(Move x: b.legalMoves()){
+            b.move(x.smallidx,x.bigidx);
+            float eval = minmax_ab(b, depth - 1, true,alpha,beta);
+            b.pop(x.smallidx,x.bigidx,rtg);
+            if(eval<min_eval){
+                min_eval=eval;
+            }
+            if(eval<beta){
+                beta=eval;
+            }
+            if(beta<=alpha){
+                break;
+            }
+        }
+        return min_eval;
+    }
+}
 struct Line{
     Move move;
     float eval;
@@ -49,7 +95,7 @@ Line best_move(int depth, bool maximising, Board b) {
     int rtg=b.nextBig;
     for (Move x : b.legalMoves()) {
         b.move(x.smallidx, x.bigidx);
-        float result = minmax(b, depth - 1, !maximising);
+        float result = minmax_ab(b, depth - 1, !maximising,-INFINITY,INFINITY);
         b.pop(x.smallidx, x.bigidx,rtg);
         if (maximising) {
             if (result > best.eval)
