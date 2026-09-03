@@ -28,5 +28,7 @@ int main(){
             cout<<"evaluation:"<<l.eval<<endl;
         }
     }
+    b.print();
+    cout<<"winner:"<<(b.winnercheck()==1?"player":"BOT")<<endl;
     return 0;
 }

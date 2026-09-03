@@ -1,11 +1,13 @@
 #pragma once
 #include "Board.hpp"
+const float weights[9]={1.44, 1,  1.44,
+                1,  1.71,   1,
+                1.44,   1,  1.44};
+const float cellWin_weight=50;
+
 Move relToUni(Move m){
     return {(m.bigidx/3)*3+(m.smallidx/3),(m.bigidx%3)*3+(m.smallidx%3)};
 }
-float weights[9]={1.44, 1,  1.44,
-                1,  1.71,   1,
-                1.44,   1,  1.44};
 float evalCell(int bigidx,Board b){
     int x[3]={0},o[3]={0};
     //row 
@@ -54,7 +56,7 @@ float Eval(Board b){
     for(int i=0;i<9;i++){
         float val=0.0;
         if(b.winners[i]!=0){
-            val+=-40*b.winners[i]+60;
+            val+=cellWin_weight*weights[i]*(-2*b.winners[i]+3);
         }else{
             val+=evalCell(i,b);
         }

@@ -65,20 +65,28 @@ class Board{
         
         return false;
     }
+    bool isValid(Move m){
+        return isValid(m.smallidx,m.bigidx);
+    }
 
-    int pop(int smallidx,int bigidx){
+    int pop(int smallidx,int bigidx,int rtg){
         int r=(bigidx/3)*3+(smallidx/3),c=(bigidx%3)*3+(smallidx%3);
         int val=get(r,c);
         set(r,c,0);
         update(bigidx);
-        nextBig=bigidx;
+        nextBig=rtg;
         Aturn=!Aturn;
         checkfreemove();
         return val;
     }
     void checkfreemove(){
+        if(nextBig==-1){
+            freemove=true;
+            return;
+        }
         freemove=winners[nextBig]!=0;
         if(freemove){
+            nextBig=-1;
             return;
         }
         freemove=true;
@@ -90,6 +98,7 @@ class Board{
                 }
             }
         }
+        nextBig=-1;
     }
     std::vector<Move> legalMoves(){
         std::vector<Move> moves;
@@ -119,7 +128,8 @@ class Board{
         int br=cellno/3,bc=cellno%3;
         int sr=smallidx/3,sc=smallidx%3;
         if (!isValid(br*3+sr,bc*3+sc)) {
-            // std::cerr << "Invalid:" <<smallidx<<","<<cellno<< std::endl;
+            std::cerr << "Invalid:" <<smallidx<<","<<cellno<< std::endl;
+            debug();
             return;
         }
         set(br*3+sr,bc*3+sc,(Aturn?1:2));
@@ -158,5 +168,16 @@ class Board{
         for(int i=0;i<9;i++){
             update(i);
         }
+    }
+    void debug(){
+        for(int i=0;i<5;i++){
+            std::cout<<"\n";
+        }
+        print();
+        std::cout<<"turn:"<<Aturn<<std::endl;
+        std::cout<<"freemove:"<<freemove<<std::endl;
+        std::cout<<"next big:"<<nextBig<<std::endl;
+        std::cout<<"winners:"<<winners<<std::endl;
+
     }
 };
