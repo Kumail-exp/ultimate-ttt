@@ -5,10 +5,11 @@
 struct Move{
     int smallidx,bigidx;
 };
+
 class Board{
     public:
     Row board[9];
-    int winners[9]={0}; //for the bigger board;
+    Row winners; //will contain the winners of bigger board
     bool freemove=true;
     bool Aturn=true;
     int nextBig=-1;
@@ -33,7 +34,7 @@ class Board{
         int r[3]={1,1,1},c[3]={1,1,1},d[2]={1,1};
         for(int i=0;i<3;i++){
             for(int j=0;j<3;j++){
-                int e=winners[3*i+j];
+                int e=winners.cellAt(3*i+j);
                 r[i]*=e;
                 c[j]*=e;
                 if(i==j){
@@ -53,7 +54,7 @@ class Board{
         return 0;
     }
     bool isValid(int r, int c) {
-        if (winners[(r / 3) * 3 + (c / 3)] != 0) {
+        if (winners.cellAt((r / 3) * 3 + (c / 3)) != 0) {
             return false;
         }
         if (freemove) {
@@ -84,7 +85,7 @@ class Board{
             freemove=true;
             return;
         }
-        freemove=winners[nextBig]!=0;
+        freemove=winners.cellAt(nextBig)!=0;
         if(freemove){
             nextBig=-1;
             return;
@@ -162,7 +163,7 @@ class Board{
         return 0;
     }
     void update(int col){
-        winners[col]=checkcellwin(col);
+        winners.change(col,checkcellwin(col));
     }
     void updateall(){
         for(int i=0;i<9;i++){
@@ -177,7 +178,7 @@ class Board{
         std::cout<<"turn:"<<Aturn<<std::endl;
         std::cout<<"freemove:"<<freemove<<std::endl;
         std::cout<<"next big:"<<nextBig<<std::endl;
-        std::cout<<"winners:"<<winners<<std::endl;
+        std::cout<<"winners:"<<winners.str()<<std::endl;
 
     }
 };

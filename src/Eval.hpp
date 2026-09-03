@@ -55,8 +55,8 @@ float Eval(Board b){
     float sval=0.0;
     for(int i=0;i<9;i++){
         float val=0.0;
-        if(b.winners[i]!=0){
-            val+=cellWin_weight*weights[i]*(-2*b.winners[i]+3);
+        if(b.winners.cellAt(i)!=0){
+            val+=cellWin_weight*weights[i]*(-2*b.winners.cellAt(i)+3);
         }else{
             val+=evalCell(i,b);
         }
