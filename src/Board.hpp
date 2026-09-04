@@ -80,26 +80,32 @@ class Board{
         checkfreemove();
         return val;
     }
+    bool isCellFull(int cellno){
+        for(int i=0;i<3;i++){   
+            for(int j=0;j<3;j++){
+                if(get((cellno/3)*3 + i, (cellno%3)*3 + j)==0){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
     void checkfreemove(){
         if(nextBig==-1){
             freemove=true;
             return;
         }
-        freemove=winners.cellAt(nextBig)!=0;
-        if(freemove){
+        if(winners.cellAt(nextBig)!=0){
+            freemove=true;
             nextBig=-1;
             return;
         }
-        freemove=true;
-        for(int i=0;i<3;i++){   
-            for(int j=0;j<3;j++){
-                if(get((nextBig/3)*3 + i, (nextBig%3)*3 + j)==0){
-                    freemove=false;
-                    return;
-                }
-            }
+        if(isCellFull(nextBig)){
+            freemove=true;
+            nextBig=-1;
+            return;
         }
-        nextBig=-1;
+        freemove=false;
     }
     std::vector<Move> legalMoves(){
         std::vector<Move> moves;

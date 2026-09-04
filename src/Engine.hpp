@@ -112,16 +112,16 @@ Line tbest_move(float time_ms,bool maximising, Board b){
     double t=0.0;
     using Clock = std::chrono::high_resolution_clock;
     Line l={{-1,-1},0,0};
-    for(int i=1;i<25;i++){
-        if(time_ms/9<=t){
-            break;
-        }
+    for(int i=1;i<25;i++){ 
         auto start = Clock::now();
         l=best_move(i,maximising,b);
         auto end = Clock::now();
         
         std::chrono::duration<double> elapsed = end - start;
         t+=elapsed.count();
+        if(time_ms/2<=t){//atleast one loop
+            break;
+        }
     }
     return l;
 }
