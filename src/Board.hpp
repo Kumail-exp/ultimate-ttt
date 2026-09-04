@@ -110,9 +110,11 @@ class Board{
         freemove=false;
     }
     std::vector<Move> legalMoves(){
+        //i am such too dumb to add more move ordering parameters to ts
         std::vector<Move> moves;
+        std::vector<int> order={1,3,5,7,0,2,6,8,4};
         if(!freemove){
-            for(int i=0;i<9;i++){
+            for(int i:order){
                 if(isValid((nextBig/3)*3+(i/3),(nextBig%3)*3+(i%3))){
                     moves.push_back({i,nextBig});
                 }
@@ -120,7 +122,10 @@ class Board{
             return moves;
         }
         for(int r=0;r<9;r++){
-            for(int i=0;i<9;i++){
+            if(winners.cellAt(r)!=0){
+                continue;
+            }
+            for(int i:order){
                 if(isValid((r/3)*3+(i/3),(r%3)*3+(i%3))){
                         moves.push_back({i,r});
                 }
