@@ -16,7 +16,7 @@ struct TTEntry{
 class Transpositiontable{
 private:
     std::unordered_map<uint32_t, TTEntry> table;
-    static const int MAX_ENTRIES = 1000000;
+    static const int MAX_ENTRIES = 10000000;
     
 public:
     uint32_t hash_board(Board b) {

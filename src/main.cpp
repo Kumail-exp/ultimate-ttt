@@ -21,7 +21,7 @@ int main(){
             }
         } else {
             tt.clear();//no risk gng
-            Line l=tbest_move(15,false,b);
+            Line l=tbest_move(10,false,b);
             cout<<"bot playes"<<l.move.smallidx<<","<<l.move.bigidx<<endl;
 
             //this has been cooking me for a while no more compromise with the safety 

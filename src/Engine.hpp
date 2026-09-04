@@ -49,7 +49,9 @@ float minmax(Board b,int depth,bool maximising){
 float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
     int w=b.winnercheck();
     if(w!=0){
-        return INFINITY*(w==1?1:-1);
+        //prefer the fastest win type shi
+        float base = (w == 1) ? 1e6f : -1e6f;
+        return base - depth * (w == 1 ? 1.f : -1.f);
     }
     std::vector<Move> moves = b.legalMoves();
     if(moves.empty()){

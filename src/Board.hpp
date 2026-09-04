@@ -129,7 +129,6 @@ class Board{
         return moves;
     }
     void move(int smallidx,int cellno=-1){
-        //assuming the player always playes legal move;
         if(cellno==-1){
             cellno=nextBig;
         }
