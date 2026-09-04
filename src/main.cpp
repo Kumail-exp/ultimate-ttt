@@ -20,7 +20,7 @@ int main(){
                 b.move(r);
             }
         }else{
-            Line l=tbest_move(5,false,b);
+            Line l=tbest_move(15,false,b);
             cout<<"bot playes"<<l.move.smallidx<<","<<l.move.bigidx<<endl;
             b.move(l.move.smallidx,l.move.bigidx);
             cout<<"evaluation:"<<l.eval<<endl;

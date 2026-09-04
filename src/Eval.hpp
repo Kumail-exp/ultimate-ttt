@@ -16,15 +16,18 @@ struct TTEntry{
 class Transpositiontable{
 private:
     std::unordered_map<uint32_t, TTEntry> table;
-    static const int MAX_ENTRIES = 500000000;
+    static const int MAX_ENTRIES = 1000000;
     
 public:
     uint32_t hash_board(Board b) {
         uint32_t h = 0;
         for(int i = 0; i < 9; i++) {
-            // the best thing my dumb brain could come up with
             h ^= b.board[i].value;
         }
+        //am i this dumb forgot to add following board details 
+        h ^= (uint32_t)b.Aturn;
+        h ^= (uint32_t)b.nextBig*31;
+        h ^= (uint32_t)b.freemove*97;
         return h;
     }
     
