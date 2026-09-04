@@ -87,11 +87,11 @@ float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
 }
 struct Line{
     Move move;
-    float eval;
+    double eval;
     int depth;
 };
 Line best_move(int depth, bool maximising, Board b) {
-    Line best = {{-1,-1}, maximising ? -INFINITY : INFINITY};
+    Line best = {{-1,-1}, maximising ? -1e9 : 1e9,depth}; //infinity caused some problems
     int rtg=b.nextBig;
     for (Move x : b.legalMoves()) {
         b.move(x.smallidx, x.bigidx);

@@ -74,7 +74,7 @@ class Board{
         int r=(bigidx/3)*3+(smallidx/3),c=(bigidx%3)*3+(smallidx%3);
         int val=get(r,c);
         set(r,c,0);
-        update(bigidx);
+        updateall();
         nextBig=rtg;
         Aturn=!Aturn;
         checkfreemove();
