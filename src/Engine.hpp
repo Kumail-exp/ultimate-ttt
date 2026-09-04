@@ -3,6 +3,7 @@
 #include "Eval.hpp"
 #include <cmath>
 #include <chrono>
+#include <vector>
 
 extern Transpositiontable tt;
 
@@ -11,14 +12,18 @@ float minmax(Board b,int depth,bool maximising){
     if(w!=0){
         return INFINITY*(w==1?1:-1);
     }
-    if(depth==0){
+    std::vector<Move> moves= b.legalMoves();
+    if(moves.empty()){
+        return 0.0f;//draw type shi 
+    }
+    if(depth == 0){
         return Eval(b);
     }
     if(maximising){
         float max_eval=-INFINITY;
         int rtg=b.nextBig;
-        for(Move x: b.legalMoves()){
-            b.move(x.smallidx,x.bigidx);
+        for (Move x : moves) {
+            b.move(x.smallidx, x.bigidx);
             float eval = minmax(b, depth - 1, false);
             b.pop(x.smallidx,x.bigidx,rtg);
             if(eval>max_eval){
@@ -29,8 +34,8 @@ float minmax(Board b,int depth,bool maximising){
     }else{
         float min_eval=INFINITY;
         int rtg=b.nextBig;
-        for(Move x: b.legalMoves()){
-            b.move(x.smallidx,x.bigidx);
+        for (Move x : moves) {
+            b.move(x.smallidx, x.bigidx);
             float eval = minmax(b, depth - 1, true);
             b.pop(x.smallidx,x.bigidx,rtg);
             if(eval<min_eval){
@@ -46,7 +51,11 @@ float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
     if(w!=0){
         return INFINITY*(w==1?1:-1);
     }
-    
+    std::vector<Move> moves = b.legalMoves();
+    if(moves.empty()){
+        return 0.0f;//again float 
+    }
+
     float cached;
     if(tt.lookup(b, depth, cached, alpha, beta)) {
         return cached;
@@ -59,8 +68,8 @@ float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
     if(maximising){
         float max_eval=-INFINITY;
         int rtg=b.nextBig;
-        for(Move x: b.legalMoves()){
-            b.move(x.smallidx,x.bigidx);
+        for (Move x : moves) {
+            b.move(x.smallidx, x.bigidx);
             float eval = minmax_ab(b, depth - 1, false, alpha, beta);
             b.pop(x.smallidx,x.bigidx,rtg);
             if(eval>max_eval){
@@ -78,8 +87,8 @@ float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
     }else{
         float min_eval=INFINITY;
         int rtg=b.nextBig;
-        for(Move x: b.legalMoves()){
-            b.move(x.smallidx,x.bigidx);
+        for (Move x : moves) {
+            b.move(x.smallidx, x.bigidx);
             float eval = minmax_ab(b, depth - 1, true, alpha, beta);
             b.pop(x.smallidx,x.bigidx,rtg);
             if(eval<min_eval){
@@ -102,18 +111,32 @@ struct Line{
     int depth;
 };
 Line best_move(int depth, bool maximising, Board b) {
-    Line best = {{-1,-1}, maximising ? -1e9 : 1e9,depth}; //infinity caused some problems
-    int rtg=b.nextBig;
-    for (Move x : b.legalMoves()) {
+    std::vector<Move> moves = b.legalMoves();
+    if (moves.empty()) {
+        return {{-1, -1}, 0.0, depth};   // draw, no move
+    }
+
+    //always seed with the first legal move so we never return ts {-1,-1} even when every child is a forced loss
+    Line best = {moves[0], maximising ? -1e9 : 1e9, depth};
+    int rtg = b.nextBig;
+    bool first = true;
+
+    for (Move x : moves) {
         b.move(x.smallidx, x.bigidx);
         float result = minmax_ab(b, depth - 1, !maximising,-INFINITY,INFINITY);
         b.pop(x.smallidx, x.bigidx,rtg);
-        if (maximising) {
-            if (result > best.eval)
+
+        if (first) {
+            best = {x, result, depth};
+            first = false;
+        } else if(maximising){
+            if (result > best.eval){
                 best = {x, result,depth};
+            }
         } else {
-            if (result < best.eval)
+            if(result < best.eval){
                 best = {x, result,depth};
+            }
         }
     }
 
@@ -127,7 +150,7 @@ Line tbest_move(float time_ms,bool maximising, Board b){
         auto start = Clock::now();
         l=best_move(i,maximising,b);
         auto end = Clock::now();
-        
+
         std::chrono::duration<double> elapsed = end - start;
         t+=elapsed.count();
         if(time_ms/2<=t){//atleast one loop

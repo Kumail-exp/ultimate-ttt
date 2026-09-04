@@ -67,7 +67,9 @@ class Board{
         return false;
     }
     bool isValid(Move m){
-        return isValid(m.smallidx,m.bigidx);
+        int r = (m.bigidx / 3) * 3 + (m.smallidx / 3);
+        int c = (m.bigidx % 3) * 3 + (m.smallidx % 3);
+        return isValid(r, c);
     }
 
     int pop(int smallidx,int bigidx,int rtg){
