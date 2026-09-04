@@ -4,6 +4,7 @@
 #include <cmath>
 #include <chrono>
 
+extern Transpositiontable tt;
 
 float minmax(Board b,int depth,bool maximising){
     int w=b.winnercheck();
@@ -39,20 +40,28 @@ float minmax(Board b,int depth,bool maximising){
         return min_eval;
     }
 }
+
 float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
     int w=b.winnercheck();
     if(w!=0){
         return INFINITY*(w==1?1:-1);
     }
+    
+    float cached;
+    if(tt.lookup(b, depth, cached, alpha, beta)) {
+        return cached;
+    }
     if(depth==0){
-        return Eval(b);
+        float ev = Eval(b);
+        tt.store(b, depth, ev, alpha, beta);
+        return ev;
     }
     if(maximising){
         float max_eval=-INFINITY;
         int rtg=b.nextBig;
         for(Move x: b.legalMoves()){
             b.move(x.smallidx,x.bigidx);
-            float eval = minmax_ab(b, depth - 1, false,alpha,beta);
+            float eval = minmax_ab(b, depth - 1, false, alpha, beta);
             b.pop(x.smallidx,x.bigidx,rtg);
             if(eval>max_eval){
                 max_eval=eval;
@@ -64,13 +73,14 @@ float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
                 break;
             }
         }
+        tt.store(b, depth, max_eval, alpha, beta);
         return max_eval;
     }else{
         float min_eval=INFINITY;
         int rtg=b.nextBig;
         for(Move x: b.legalMoves()){
             b.move(x.smallidx,x.bigidx);
-            float eval = minmax_ab(b, depth - 1, true,alpha,beta);
+            float eval = minmax_ab(b, depth - 1, true, alpha, beta);
             b.pop(x.smallidx,x.bigidx,rtg);
             if(eval<min_eval){
                 min_eval=eval;
@@ -82,6 +92,7 @@ float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
                 break;
             }
         }
+        tt.store(b, depth, min_eval, alpha, beta);
         return min_eval;
     }
 }
@@ -112,7 +123,7 @@ Line tbest_move(float time_ms,bool maximising, Board b){
     double t=0.0;
     using Clock = std::chrono::high_resolution_clock;
     Line l={{-1,-1},0,0};
-    for(int i=1;i<25;i++){ 
+    for(int i=5;i<25;i++){ 
         auto start = Clock::now();
         l=best_move(i,maximising,b);
         auto end = Clock::now();

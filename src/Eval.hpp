@@ -1,5 +1,82 @@
 #pragma once
 #include "Board.hpp"
+#include <unordered_map>
+
+enum Flag{
+     EXACT,LOWER_BOUND,UPPER_BOUND
+};
+
+struct TTEntry{
+    float eval;
+    int depth;
+    uint32_t hash;
+    Flag flag;
+};
+
+class Transpositiontable{
+private:
+    std::unordered_map<uint32_t, TTEntry> table;
+    static const int MAX_ENTRIES = 500000000;
+    
+public:
+    uint32_t hash_board(Board b) {
+        uint32_t h = 0;
+        for(int i = 0; i < 9; i++) {
+            // the best thing my dumb brain could come up with
+            h ^= b.board[i].value;
+        }
+        return h;
+    }
+    
+    bool lookup(Board b, int depth, float& result, float alpha, float beta) {
+        uint32_t h = hash_board(b);
+        auto it = table.find(h);
+        
+        if(it != table.end() && it->second.depth >= depth) {
+            if(it->second.flag == EXACT) {
+                result = it->second.eval;
+                return true;
+            }
+            //i hate alpha beta pruning so much so much this would just have been such a easy to grab from internet
+            if(it->second.flag == LOWER_BOUND && it->second.eval > alpha) {
+                alpha = it->second.eval;
+            }
+            if(it->second.flag == UPPER_BOUND && it->second.eval < beta) {
+                beta = it->second.eval;
+            }
+            if(alpha >= beta) {
+                result = it->second.eval;
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    void store(Board b, int depth, float eval, float alpha, float beta) {
+        if(table.size() >= MAX_ENTRIES) {
+            table.clear();
+        }
+        uint32_t h = hash_board(b);
+        
+        Flag f;
+        if(eval <= alpha) {
+            f = UPPER_BOUND;
+        } else if(eval >= beta) {
+            f = LOWER_BOUND;
+        } else {
+            f = EXACT;
+        }
+        
+        table[h] = {eval, depth, h, f};
+    }
+    
+    void clear() {
+        table.clear();
+    }
+};
+
+Transpositiontable tt;
+
 const float weights[9]={1.44, 1,  1.44,
                 1,  1.71,   1,
                 1.44,   1,  1.44};
@@ -51,6 +128,11 @@ float evalCell(int bigidx,Board b){
     return (7*x[2]+2*x[1])-(7*o[2]+2*o[1]);
 }
 float Eval(Board b){
+    float cached;
+    if(tt.lookup(b, 0, cached, -1e9, 1e9)) {
+        return cached;
+    }
+    
     //assuming the board hasnt been won yet
     float sval=0.0;
     for(int i=0;i<9;i++){
@@ -62,5 +144,7 @@ float Eval(Board b){
         }
         sval+=val*weights[i];
     }
+    
+    tt.store(b, 0, sval, -1e9, 1e9);
     return sval;
 }
