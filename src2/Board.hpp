@@ -41,11 +41,11 @@ public:
         0b00000000000000000000000000111111, // cells 0,1,2
         0b00000000000000000000111111000000, // cells 3,4,5
         0b00000000000000111111000000000000, // cells 6,7,8
-        0b00000000000000000001000001000001, // cells 0,3,6
-        0b00000000000000000100000100000100, // cells 1,4,7
-        0b00000000000000010000010000010000, // cells 2,5,8
-        0b00000000000000010000000100000001, // cells 0,4,8
-        0b00000000000000000100000100010000  // cells 2,4,6
+        0b00000000000000001100001100000011, // cells 0,3,6
+        0b00000000000000110000110000001100, // cells 1,4,7
+        0b00000000000011000011000000110000, // cells 2,5,8
+        0b00000000000011000000110000000011, // cells 0,4,8
+        0b00000000000000001100110000110000  // cells 2,4,6
     };
 
     //0-ongoing, 1-x win, 2-o win
@@ -96,7 +96,7 @@ public:
         }
 
         next = m.smallidx;
-        if((meta >> (2 * next) & 3) ||isSmallFull(next)){
+        if (next > 8 || ((meta >> (2 * next)) & 3) || isSmallFull(next)) {
             next = 9;
         }
         player = 3 - player;
@@ -107,7 +107,7 @@ public:
         if (winner == 0) {
             bool full = true;
             for (int i = 0; i < 9; ++i) {
-                if ((meta >> (2 * i) & 3) == 0 && !isSmallFull(i)) {
+                if (((meta >> (2 * i)) & 3) == 0 && !isSmallFull(i)) {
                     full = false;
                     break;
                 }
@@ -125,7 +125,7 @@ public:
     }
 
     int checkMetaWin() const{
-        for (uint32_t mask : WIN_MASKS) {
+            for (uint32_t mask : WIN_MASKS) {
             uint32_t line = meta & mask;
             if (line == (mask & 0b010101010101010101)) return 1;
             if (line == (mask & 0b101010101010101010)) return 2;
@@ -137,7 +137,7 @@ public:
 
         if (next == 9){
             for (int b = 0; b < 9; ++b){
-                if ((meta >> (2 * b) & 3) == 0 && !isSmallFull(b)){
+                if (((meta >> (2 * b)) & 3) == 0 && !isSmallFull(b)){
                     for (int s = 0; s < 9; ++s){ //fancy ahh
                         if (get(b, s) == 0)
                             moves.push_back({(uint8_t)s, (uint8_t)b});
@@ -147,7 +147,7 @@ public:
         } else {
             int b = next;
             //i wont forget that i still have to check wether board is still playable or not
-            if ((meta >> (2 * b) & 3) == 0 && !isSmallFull(b)){
+            if (((meta >> (2 * b)) & 3) == 0 && !isSmallFull(b)){
                 for (int s = 0; s < 9; ++s){
                     if (get(b, s) == 0)
                         moves.push_back({(uint8_t)s, (uint8_t)b});

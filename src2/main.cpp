@@ -1,5 +1,7 @@
 #include "Board.hpp"
 #include <iostream>
+#include <vector>
+#include <string>
 using namespace std;
 
 void printBoard(const Board& b) {
@@ -13,7 +15,7 @@ void printBoard(const Board& b) {
                     int small = smallRow * 3 + smallCol;
                     int val = b.get(big, small);
                     char c = (val == 0 ? '.' : (val == 1 ? 'X' : 'O'));
-                    cout << c ;
+                    cout << c;
                 }
                 cout << " | ";
             }
@@ -29,8 +31,8 @@ void printBoard(const Board& b) {
 int main() {
     Board b;
     Board::Undo u;
-
-    while (b.winner == 0) {
+    unsigned int r,c;
+    while(b.winner == 0){
         printBoard(b);
 
         vector<Move> moves;
@@ -39,18 +41,19 @@ int main() {
         if (moves.empty()) {
             cout << "No legal moves left. Draw.\n";
             break;
-        }        
-
-        int choice = -1;
-        while (true) {
-            cout << "Enter move index: ";
-            cin >> choice;
-            if (choice >= 0 && choice < (int)moves.size()) break;
-            cout << "Invalid choice, try again.\n";
         }
 
-        Move m = moves[choice];
-        b.make(m, u);
+        cout<<"enter smallidx>";
+        cin>>r;
+        if(b.next==9){
+            cout<<"enter bigidx>";
+            cin>>c;
+            b.make({static_cast<uint8_t>(r),static_cast<uint8_t>(c)},u);
+        }else{
+            b.make({static_cast<uint8_t>(r),b.next},u);
+        }
+        
+
 
         if (b.winner != 0) break;
     }
