@@ -1,6 +1,8 @@
 #pragma once
 #include "Board.hpp"
+#include "Zobrist.hpp"
 #include "Eval.hpp"
+#include "Move.hpp"
 #include <cmath>
 #include <vector>
 #include <chrono>
@@ -12,17 +14,22 @@ double minmax(Board& b, int depth, bool maximising,double alpha, double beta) {
     if (b.winner == 2) return -1e9;
     if (b.winner == 3) return  0.0;
 
-    std::vector<Move> moves;
-    b.legalMoves(moves);
-    if (moves.empty()) {
-        return 0.0;//drawwww
-    }
-    if(depth == 0){
-        return Eval(b);
+    Move ttMove = {9,9};
+    double ttScore;
+    if (ttProbe(b.hash, depth, alpha, beta, ttScore, ttMove)) {
+        return ttScore;
     }
 
+    std::vector<Move> moves;
+    b.legalMoves(moves);
+    if (moves.empty()) return 0.0;
+    if (depth == 0) return Eval(b);
+
+    double originalAlpha = alpha;
+    double best = maximising ? -INFINITY : +INFINITY;
+    Move bestMove = {9,9};
+
     if(maximising){
-        double best= -INFINITY;
         for(Move x : moves){
             Board::Undo u;
             b.make(x,u);
@@ -30,6 +37,7 @@ double minmax(Board& b, int depth, bool maximising,double alpha, double beta) {
             b.unmake(u);
             if(eval > best){
                 best =eval;
+                bestMove=x;
             }
             if(eval>alpha){
                 alpha=eval;
@@ -38,26 +46,34 @@ double minmax(Board& b, int depth, bool maximising,double alpha, double beta) {
                 break;
             }
         }
-        return best;
     } else {
-        double best = +INFINITY;
-        for(Move x : moves){
+        for (Move x : moves) {
             Board::Undo u;
-            b.make(x,u);
-            double eval=minmax(b,depth-1,true,alpha,beta);
+            b.make(x, u);
+            double eval = minmax(b, depth-1, true, alpha, beta);
             b.unmake(u);
-            if(eval < best){
+            if (eval < best) {
                 best = eval;
+                bestMove = x;
             }
             if(eval<beta){
                 beta=eval;
             }
             if(beta <= alpha){
-                break;
+                break;  
             }
         }
-        return best;
     }
+
+
+    TTFlag flag = TT_EXACT;
+    if (best <= originalAlpha) flag = TT_UPPER;
+    else if (best >= beta){
+        flag = TT_LOWER;
+    }
+
+    ttStore(b.hash,depth,best,flag,bestMove);
+    return best;
 }
 
 struct Line{

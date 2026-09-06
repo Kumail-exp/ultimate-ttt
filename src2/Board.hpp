@@ -1,11 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <vector>
-
-struct Move{
-    uint8_t smallidx;
-    uint8_t bigidx;
-};
+#include "Zobrist.hpp"
+#include "Move.hpp"
 
 class Board {
 public:
@@ -14,7 +11,7 @@ public:
 
     //like the equivalent of smallones, u get it wont u 
     uint32_t meta = 0;
-    
+
     //i usemy ultimaste technique of being a chud and stealing this technique from the big projevts so its def fast af
 
     //0 to 8 is just adress and 9 is freemove, agressive space aving type shi
@@ -24,6 +21,9 @@ public:
     //one commewnt a day keeps the bugs away 
     //0-ongoing, 1-x win, 2-o win, 3- draw 
     uint8_t winner = 0;
+    
+    //hash is now not caluclated each time but maintained throuhghout
+    uint64_t hash = 0;
 
     //inline makes shits faster
     inline int get(int bigidx, int smallidx) const {
@@ -115,9 +115,35 @@ public:
             }
             if (full) winner = 3;
         }
+
+        //noe for hashing 
+        auto& z = zobrist();
+        hash ^= z.cell[m.bigidx][m.smallidx][u.old_player];
+        hash ^= z.next[u.old_next];
+        hash ^= z.next[next];
+        hash ^= z.side;
+
+        int oldMetaVal = (u.old_meta >> (2 * m.bigidx)) & 3;
+        int newMetaVal = (meta      >> (2 * m.bigidx)) & 3;
+        if (oldMetaVal != newMetaVal) {
+            if (oldMetaVal) hash ^= z.meta[m.bigidx][oldMetaVal];
+            if (newMetaVal) hash ^= z.meta[m.bigidx][newMetaVal];
+        }
     }
 
     void unmake(const Undo& u){
+        auto& z = zobrist();
+        hash ^= z.cell[u.big][u.small][u.old_player];
+        hash ^= z.next[next];
+        hash ^= z.next[u.old_next];
+        hash ^= z.side;
+
+        int oldMetaVal = (u.old_meta >> (2 * u.big)) & 3;
+        int newMetaVal = (meta      >> (2 * u.big)) & 3;
+        if (oldMetaVal != newMetaVal) {
+            if (newMetaVal) hash ^= z.meta[u.big][newMetaVal];
+            if (oldMetaVal) hash ^= z.meta[u.big][oldMetaVal];
+        }
         small[u.big] = u.old_small;
         meta = u.old_meta;
         next = u.old_next;

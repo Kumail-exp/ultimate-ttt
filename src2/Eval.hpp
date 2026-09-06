@@ -1,3 +1,6 @@
+#pragma once
+#include "Move.hpp"
+
 static const int LOCAL_POS[9] = {
     3, 2, 3,
     2, 4, 2,
