@@ -4,7 +4,7 @@
 #include <cmath>
 #include <vector>
 #include <chrono>
-double minmax(Board& b, int depth, bool maximising) {
+double minmax(Board& b, int depth, bool maximising,double alpha, double beta) {
     
 
     //winner type shift
@@ -26,10 +26,16 @@ double minmax(Board& b, int depth, bool maximising) {
         for(Move x : moves){
             Board::Undo u;
             b.make(x,u);
-            double eval = minmax(b,depth-1,false);
+            double eval = minmax(b,depth-1,false,alpha,beta);
             b.unmake(u);
             if(eval > best){
                 best =eval;
+            }
+            if(eval>alpha){
+                alpha=eval;
+            }
+            if(beta <= alpha){
+                break;
             }
         }
         return best;
@@ -38,10 +44,16 @@ double minmax(Board& b, int depth, bool maximising) {
         for(Move x : moves){
             Board::Undo u;
             b.make(x,u);
-            double eval=minmax(b,depth-1,true);
+            double eval=minmax(b,depth-1,true,alpha,beta);
             b.unmake(u);
             if(eval < best){
                 best = eval;
+            }
+            if(eval<beta){
+                beta=eval;
+            }
+            if(beta <= alpha){
+                break;
             }
         }
         return best;
@@ -70,7 +82,7 @@ Line best_move(int depth, bool maximising, Board b) {
     for(Move x :moves){
         Board::Undo u;
         b.make(x,u);
-        double result =minmax(b,depth-1,!maximising);
+        double result =minmax(b,depth-1,!maximising,-INFINITY,INFINITY);
         b.unmake(u);
         if(first){
             best ={x,result,depth};

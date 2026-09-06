@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <chrono>
+using Clock = std::chrono::high_resolution_clock;
 using namespace std;
 
 void printBoard(const Board& b) {
@@ -79,8 +81,11 @@ int main() {
             }
             b.make(m, u);
         }else{
-            
+            auto start = Clock::now();
             Line l = tbest_move(10, false, b);
+            auto end = Clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+            cout << "time: " <<elapsed.count() <<endl;
             cout << "bot plays " <<(int)l.m.smallidx <<","<< (int)l.m.bigidx<<endl;
             cout << "evaluation: "<< l.eval<<endl;
             cout << "depth: " <<l.depth <<endl;
