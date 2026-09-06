@@ -2,17 +2,13 @@
 #include "Move.hpp"
 #include "Board.hpp"
 
-static const int LOCAL_POS[9] = {
-    3, 2, 3,
-    2, 4, 2,
-    3, 2, 3
-};
+static const double LOCAL_POS[9] ={1.44, 1,  1.44,
+                1,  1.71,   1,
+                1.44,   1,  1.44};
 
-static const int GLOBAL_WEIGHT[9] = {
-    3, 2, 3,
-    2, 5, 2,
-    3, 2, 3
-};
+static const double GLOBAL_WEIGHT[9] = {1.44, 1,  1.44,
+                1,  1.81,   1,
+                1.44,   1,  1.44};
 
 // classic 9-bit win masks (one bit per cell)
 static const int WIN9[8] = {

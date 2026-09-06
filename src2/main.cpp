@@ -46,7 +46,7 @@ int main() {
             break;
         }
 
-        if (b.player == 1) { 
+        if (b.player == 2) { 
             unsigned int r, c;
             Move m;
             bool ok = false;
@@ -82,7 +82,7 @@ int main() {
             b.make(m, u);
         }else{
             auto start = Clock::now();
-            Line l = tbest_move(15.0f, false, b);
+            Line l = tbest_move(15.0f, true, b);
             auto end = Clock::now();
             std::chrono::duration<double> elapsed = end - start;
             cout << "time: " <<elapsed.count() <<endl;
