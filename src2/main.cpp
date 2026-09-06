@@ -1,4 +1,5 @@
 #include "Board.hpp"
+#include "Engine.hpp"
 #include <iostream>
 #include <vector>
 #include <string>
@@ -31,7 +32,7 @@ void printBoard(const Board& b) {
 int main() {
     Board b;
     Board::Undo u;
-    unsigned int r, c;
+    
     while (b.winner == 0) {
         printBoard(b);
 
@@ -43,42 +44,48 @@ int main() {
             break;
         }
 
-        Move m;
-        bool ok = false;
-        while (!ok) {
-            //i hate cpp cuz fym i have to do following bs for an input
-            cout << "enter smallidx>";
-            if (!(cin >> r) || r > 8) {
-                cin.clear();
-                cin.ignore(10000, '\n');
-                cout << "invalid\n";
-                continue;
-            }
-            if (b.next == 9) {
-                cout << "enter bigidx>";
-                if (!(cin >> c) || c > 8) {
+        if (b.player == 1) { 
+            unsigned int r, c;
+            Move m;
+            bool ok = false;
+            while (!ok) {
+                cout << "enter smallidx> ";
+                if(!(cin >> r) ||r > 8){
                     cin.clear();
                     cin.ignore(10000, '\n');
                     cout << "invalid\n";
                     continue;
                 }
-                m = {static_cast<uint8_t>(r), static_cast<uint8_t>(c)};
-            } else {
-                m = {static_cast<uint8_t>(r), b.next};
-            }
-
-            for (const auto& legal : moves) {
-                if (legal.smallidx == m.smallidx && legal.bigidx == m.bigidx) {
-                    ok = true;
-                    break;
+                if(b.next == 9){
+                    cout << "enter bigidx> ";
+                    if (!(cin >> c) || c > 8) {
+                        cin.clear();
+                        cin.ignore(10000,'\n');
+                        cout << "invalid\n";
+                        continue;
+                    }
+                    m = {static_cast<uint8_t>(r), static_cast<uint8_t>(c)};
+                } else{
+                    m = {static_cast<uint8_t>(r), b.next};
                 }
+
+                for(const auto& legal : moves){
+                    if (legal.smallidx == m.smallidx && legal.bigidx == m.bigidx) {
+                        ok = true;
+                        break;
+                    }
+                }
+                if (!ok) cout << "illegal move\n";
             }
-            if (!ok) cout << "illegal move\n";
+            b.make(m, u);
+        }else{
+            
+            Line l = best_move(6, false, b);
+            cout << "bot plays " <<(int)l.m.smallidx <<","<< (int)l.m.bigidx<<endl;
+            cout << "evaluation: "<< l.eval<<endl;
+            cout << "depth: " <<l.depth <<endl;
+            b.make(l.m, u);
         }
-
-        b.make(m, u);
-
-        if (b.winner != 0) break;
     }
 
     printBoard(b);
