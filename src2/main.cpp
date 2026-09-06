@@ -80,11 +80,11 @@ int main() {
             b.make(m, u);
         }else{
             
-            Line l = best_move(6, false, b);
+            Line l = tbest_move(10, false, b);
             cout << "bot plays " <<(int)l.m.smallidx <<","<< (int)l.m.bigidx<<endl;
             cout << "evaluation: "<< l.eval<<endl;
             cout << "depth: " <<l.depth <<endl;
-            b.make(l.m, u);
+            b.make(l.m,u);
         }
     }
 

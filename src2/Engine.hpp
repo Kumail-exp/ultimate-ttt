@@ -3,7 +3,7 @@
 #include "Eval.hpp"
 #include <cmath>
 #include <vector>
-
+#include <chrono>
 double minmax(Board& b, int depth, bool maximising) {
     
 
@@ -86,4 +86,21 @@ Line best_move(int depth, bool maximising, Board b) {
         }
     }
     return best;
+}
+Line tbest_move(float time_ms,bool maximising, Board b){
+    double t=0.0;
+    using Clock = std::chrono::high_resolution_clock;
+    Line l={{static_cast<uint8_t>(9),static_cast<uint8_t>(9)},0,0};
+    for(int i=5;i<25;i++){ 
+        auto start = Clock::now();
+        l=best_move(i,maximising,b);
+        auto end = Clock::now();
+
+        std::chrono::duration<double> elapsed = end - start;
+        t+=elapsed.count();
+        if(time_ms/2<=t){//atleast one loop
+            break;
+        }
+    }
+    return l;
 }
