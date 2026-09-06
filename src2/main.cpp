@@ -31,29 +31,52 @@ void printBoard(const Board& b) {
 int main() {
     Board b;
     Board::Undo u;
-    unsigned int r,c;
-    while(b.winner == 0){
+    unsigned int r, c;
+    while (b.winner == 0) {
         printBoard(b);
 
         vector<Move> moves;
         b.legalMoves(moves);
 
         if (moves.empty()) {
-            cout << "No legal moves left. Draw.\n";
+            cout << "no legal moves left. Draw.\n";
             break;
         }
 
-        cout<<"enter smallidx>";
-        cin>>r;
-        if(b.next==9){
-            cout<<"enter bigidx>";
-            cin>>c;
-            b.make({static_cast<uint8_t>(r),static_cast<uint8_t>(c)},u);
-        }else{
-            b.make({static_cast<uint8_t>(r),b.next},u);
-        }
-        
+        Move m;
+        bool ok = false;
+        while (!ok) {
+            //i hate cpp cuz fym i have to do following bs for an input
+            cout << "enter smallidx>";
+            if (!(cin >> r) || r > 8) {
+                cin.clear();
+                cin.ignore(10000, '\n');
+                cout << "invalid\n";
+                continue;
+            }
+            if (b.next == 9) {
+                cout << "enter bigidx>";
+                if (!(cin >> c) || c > 8) {
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    cout << "invalid\n";
+                    continue;
+                }
+                m = {static_cast<uint8_t>(r), static_cast<uint8_t>(c)};
+            } else {
+                m = {static_cast<uint8_t>(r), b.next};
+            }
 
+            for (const auto& legal : moves) {
+                if (legal.smallidx == m.smallidx && legal.bigidx == m.bigidx) {
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok) cout << "illegal move\n";
+        }
+
+        b.make(m, u);
 
         if (b.winner != 0) break;
     }
