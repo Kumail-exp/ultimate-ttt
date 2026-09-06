@@ -99,20 +99,43 @@ Line best_move(int depth, bool maximising, Board b) {
     }
     return best;
 }
-Line tbest_move(float time_ms,bool maximising, Board b){
-    double t=0.0;
+Line tbest_move(float time, bool maximising, Board b){
+    //highly inspired from zammus design
     using Clock = std::chrono::high_resolution_clock;
-    Line l={{static_cast<uint8_t>(9),static_cast<uint8_t>(9)},0,0};
-    for(int i=5;i<25;i++){ 
-        auto start = Clock::now();
-        l=best_move(i,maximising,b);
-        auto end = Clock::now();
+    using sec = std::chrono::duration<double>;
+    auto start= Clock::now();
+    auto softEnd= start + sec(time * 0.85);
+    auto hardEnd= start + sec(time * 0.96);
 
-        std::chrono::duration<double> elapsed = end - start;
-        t+=elapsed.count();
-        if(time_ms/2<=t){//atleast one loop
-            break;
+    Line best = {{9, 9}, 0.0, 0};
+    double lastDepthTime = 0.0;
+    std::vector<Move> rootmoves;
+    b.legalMoves(rootmoves);
+    if (rootmoves.empty()) return best;
+    best.m = rootmoves[0];
+
+    for (int depth = 6; depth <= 25; ++depth) {
+        auto now = Clock::now();
+        if (now >= softEnd) break;
+
+        //dont start a thing u cant finish
+        if (depth > 1 && lastDepthTime > 0.0) {
+            double estimate = lastDepthTime * 4.0;
+            if (now + sec(estimate) > softEnd) break;
+        }
+
+        auto depthStart = Clock::now();
+        Line candidate = best_move(depth, maximising, b);
+        auto depthEnd  = Clock::now();
+        lastDepthTime = sec(depthEnd - depthStart).count();
+
+        // only accept the result if we finished before the hard deadline
+        if (depthEnd < hardEnd) {
+            best = candidate;
+        } else {
+            break;//overshoot
         }
     }
-    return l;
+
+    return best;
 }
