@@ -82,7 +82,7 @@ int main() {
             b.make(m, u);
         }else{
             auto start = Clock::now();
-            Line l = tbest_move(10, false, b);
+            Line l = tbest_move(15.0f, false, b);
             auto end = Clock::now();
             std::chrono::duration<double> elapsed = end - start;
             cout << "time: " <<elapsed.count() <<endl;

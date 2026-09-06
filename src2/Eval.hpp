@@ -1,5 +1,6 @@
 #pragma once
 #include "Move.hpp"
+#include "Board.hpp"
 
 static const int LOCAL_POS[9] = {
     3, 2, 3,
@@ -82,8 +83,8 @@ inline int evaluateLocal(uint32_t s, bool meIsX){
     return score;
 }
 
-float Eval(const Board& b) {
-    //relative to only x perspective unlike zammy gay
+inline  float Eval(const Board& b) {
+    //relative to only x perspective unlike zammy
     float score = 0.0f;
     for (int g = 0; g < 9; ++g) {
         int w = b.checkSmallWin(g);
