@@ -36,18 +36,24 @@ void initPosScore() {
         POS_SCORE[bits] = score;
     }
 }
-void Move_ordering(std::vector<Move>& legals){
-    //who better than the out beloved insertion sort
-    for (int i = 1; i < legals.size(); ++i) {
-        auto x = legals[i];
-        int j = i;
-        while (j > 0 && MOVE_IMPORTANCE[legals[j - 1].smallidx] > MOVE_IMPORTANCE[x.smallidx]) {
+void Move_ordering(std::vector<Move>& legals,int small_killer){
+    //who better than the our beloved insertion sort
+    auto importance = [small_killer](const Move& move){
+        if (move.smallidx == small_killer)
+            return 1000000.0f; //killer move gets top ahh priority
+        return MOVE_IMPORTANCE[move.smallidx];
+    };
+    for (size_t i = 1; i < legals.size(); ++i){
+        Move key = legals[i];
+        size_t j = i;
+        while (j > 0 && importance(legals[j - 1]) < importance(key)){
             legals[j] = legals[j - 1];
             --j;
         }
-        legals[j] = x;
+        legals[j] = key;
     }
 }
+
 //extract the funky ahh from the bits
 inline void extractBits(uint32_t s, int& xBits, int& oBits) {
     xBits = oBits = 0;

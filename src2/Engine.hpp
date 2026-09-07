@@ -6,7 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <chrono>
-inline double Minmax(Board& b, int depth, bool maximising,double alpha, double beta,long& nodes) {
+inline double Minmax(Board& b, int depth, bool maximising,double alpha, double beta,long& nodes,int& killer) {
     nodes++ ;
 
     //winner type shift
@@ -46,7 +46,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     double originalBeta = beta;
     double best = maximising ? -INFINITY : +INFINITY;
     Move bestMove = {9,9};
-    Move_ordering(moves);
+    Move_ordering(moves,killer);
     int champ=-1;
     bool first=true;
     if(maximising){
@@ -56,10 +56,10 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             b.make(x,u);
             if(first){
                 first=false;  
-                eval = Minmax(b,depth-1,false,alpha,beta,nodes);
+                eval = Minmax(b,depth-1,false,alpha,beta,nodes,killer);
             }else{ 
-                eval=Minmax(b,depth-1,false,alpha,alpha+1,nodes);
-                if(eval > alpha) eval = Minmax(b, depth-1, false, alpha, beta,nodes);
+                eval=Minmax(b,depth-1,false,alpha,alpha+1,nodes,killer);
+                if(eval > alpha) eval = Minmax(b, depth-1, false, alpha, beta,nodes,killer);
             }
             b.unmake(u);
             if(eval > best){
@@ -81,10 +81,10 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             b.make(x, u);
             if(first){
                 first=false;
-                eval = Minmax(b, depth-1, true, alpha, beta,nodes);
+                eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
             }else{ 
-                eval = Minmax(b, depth-1, true, beta-1, beta,nodes);
-                if(eval <beta) eval = Minmax(b, depth-1, true, alpha, beta,nodes);
+                eval = Minmax(b, depth-1, true, beta-1, beta,nodes,killer);
+                if(eval <beta) eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
             }
             b.unmake(u);
             if (eval < best) {
@@ -111,6 +111,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
 
     store(b, depth, best, flag);
     MOVE_IMPORTANCE[champ]+=(depth/100.0);
+    killer=champ;
     return best;
 }
 
@@ -119,7 +120,7 @@ struct Line{
     double eval;
     int depth;
 };
-inline Line best_move(int depth, bool maximising, Board b,long& nodes) {
+inline Line best_move(int depth, bool maximising, Board b,long& nodes,int& killer) {
     if (b.winner != 0) {
         return {{9, 9},0.0,depth};//ts already over
     }
@@ -136,7 +137,7 @@ inline Line best_move(int depth, bool maximising, Board b,long& nodes) {
     for(Move x :moves){
         Board::Undo u;
         b.make(x,u);
-        double result =Minmax(b,depth-1,!maximising,-INFINITY,INFINITY,nodes);
+        double result =Minmax(b,depth-1,!maximising,-INFINITY,INFINITY,nodes,killer);
         b.unmake(u);
         if(first){
             best ={x,result,depth};
@@ -168,8 +169,9 @@ inline Line tbest_move(float time, bool maximising, Board b,long& nodes){
     b.legalMoves(rootmoves);
     if (rootmoves.empty()) return best;
     best.m = rootmoves[0];
+    int k=1;
     //no risk gng
-    for (int depth = 0; depth <= 82; depth++) {
+    for (int depth = 1; depth <= 82; depth++) {
         auto now = Clock::now();
         if (now >= softEnd) break;
 
@@ -180,7 +182,7 @@ inline Line tbest_move(float time, bool maximising, Board b,long& nodes){
         }
 
         auto depthStart = Clock::now();
-        Line candidate = best_move(depth, maximising, b,nodes);
+        Line candidate = best_move(depth, maximising, b,nodes,k);
         auto depthEnd  = Clock::now();
         lastDepthTime = sec(depthEnd - depthStart).count();
 
