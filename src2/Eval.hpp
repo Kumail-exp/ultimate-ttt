@@ -2,11 +2,14 @@
 #include "Move.hpp"
 #include "Board.hpp"
 
-static const double LOCAL_POS[9] ={1.44, 1,  1.44,
+//ts is for small board
+float MOVE_IMPORTANCE[9]={1.44,1.7,1.44,1.7,1,1.7,1.44,1.7,1.44};
+
+static constexpr double LOCAL_POS[9] ={1.44, 1,  1.44,
                 1,  1.71,   1,
                 1.44,   1,  1.44};
 
-static const double GLOBAL_WEIGHT[9] = {1.44, 1,  1.44,
+static constexpr double GLOBAL_WEIGHT[9] = {1.44, 1,  1.44,
                 1,  1.81,   1,
                 1.44,   1,  1.44};
 
@@ -21,6 +24,19 @@ static const int WIN9[8] = {
     0b100010001, // 0 4 8
     0b001010100  // 2 4 6
 };
+
+void Move_ordering(std::vector<Move>& legals){
+    //who better than the out beloved insertion sort
+    for (int i = 1; i < legals.size(); ++i) {
+        auto x = legals[i];
+        int j = i;
+        while (j > 0 && MOVE_IMPORTANCE[legals[j - 1].smallidx] > MOVE_IMPORTANCE[x.smallidx]) {
+            legals[j] = legals[j - 1];
+            --j;
+        }
+        legals[j] = x;
+    }
+}
 //extract the funky ahh from the bits
 inline void extractBits(uint32_t s, int& xBits, int& oBits) {
     xBits = oBits = 0;

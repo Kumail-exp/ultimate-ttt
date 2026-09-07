@@ -97,7 +97,7 @@ public:
             next = 9;
         }
         player = 3 - player;
-        //total winner wime
+        //total winner time
         winner = checkMetaWin();
 
         //detect global draw if meta is completely full and no one won

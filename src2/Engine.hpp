@@ -47,6 +47,8 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     double best = maximising ? -INFINITY : +INFINITY;
     Move bestMove = {9,9};
 
+    Move_ordering(moves);
+    int champ=-1;
     if(maximising){
         for(Move x : moves){
             Board::Undo u;
@@ -56,6 +58,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             if(eval > best){
                 best =eval;
                 bestMove=x;
+                champ=x.smallidx;
             }
             if(eval>alpha){
                 alpha=eval;
@@ -73,6 +76,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             if (eval < best) {
                 best = eval;
                 bestMove = x;
+                champ=x.smallidx;
             }
             if(eval<beta){
                 beta=eval;
@@ -92,6 +96,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
         flag = EXACT;
 
     store(b, depth, best, flag);
+    MOVE_IMPORTANCE[champ]+0.1;
     return best;
 }
 
