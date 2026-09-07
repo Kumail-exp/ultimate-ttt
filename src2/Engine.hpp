@@ -23,8 +23,19 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     auto it=transpositionTable.find(Hash(b));
     if(it!=transpositionTable.end()){
         TT& entry = it->second;
-        if (entry.depth >= depth){ //remember the lower depth here is acually higher 
-            return entry.eval;
+        if(entry.depth >= depth){
+            //again as a reminder i hate alpha beta
+            if(entry.flag == EXACT)
+                return entry.eval;
+
+            if(entry.flag == LOWERBOUND)
+                alpha = std::max(alpha, entry.eval);
+
+            else if(entry.flag == UPPERBOUND)
+                beta = std::min(beta, entry.eval);
+
+            if(alpha >= beta)
+                return entry.eval;
         }
     }
 
@@ -71,7 +82,16 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             }
         }
     }
-    store(b,depth,best);
+    
+    Flag flag;
+    if(best <= originalAlpha)
+        flag = UPPERBOUND;
+    else if(best >= originalBeta)
+        flag = LOWERBOUND;
+    else
+        flag = EXACT;
+
+    store(b, depth, best, flag);
     return best;
 }
 

@@ -7,9 +7,8 @@
 //board
 uint64_t k_board[9][9][2];
 //extra values:
-u_int64_t k_player;
-u_int64_t k_next[10];
-
+uint64_t k_player;
+uint64_t k_next[10];
 //initing 
 void init(){
     std::mt19937_64 rng(142857);//ts number aint random iykyk
@@ -17,7 +16,7 @@ void init(){
     for(int i=0;i<9;i++){
         for(int j=0;j<9;j++){ 
             k_board[i][j][0] = rng();
-            k_board[i][j][0] = rng();
+            k_board[i][j][1] = rng();
         }
     }
     k_player=rng();
@@ -40,25 +39,23 @@ inline uint64_t Hash(Board& b){
 }
 
 
+//i tbh dont properly understand alpha-beta pruuuning but whatever it takes to improve it
+enum Flag{
+    EXACT,
+    LOWERBOUND,
+    UPPERBOUND
+};
 
 //now comes the tt
 struct TT{
     double eval;
     int depth;
+    Flag flag;
 };
 
 std::unordered_map<uint64_t, TT> transpositionTable;
 
-inline double lookup(Board& b,int depth){
-    auto it=transpositionTable.find(Hash(b));
-    if(it!=transpositionTable.end()){
-        TT& entry = it->second;
-        if (entry.depth <= depth){ //remember the lower depth here is acually higher 
-            return entry.eval;
-        }
-    }
-}
 
-void store(Board& b, int depth,double eval){
-    transpositionTable[Hash(b)]={eval,depth};
+void store(Board& b, int depth,double eval,Flag f){
+    transpositionTable[Hash(b)]={eval,depth,f};
 }
