@@ -143,33 +143,72 @@ inline Line best_move(int depth, bool maximising, Board b,long& nodes,int& kille
     if (b.winner != 0) {
         return {{9, 9},0.0,depth};//ts already over
     }
-
     std::vector<Move> moves;
     b.legalMoves(moves);
-    if(moves.empty()){
-        return {{9, 9},0.0,depth};
+
+    if (moves.empty()) {
+        return {{9, 9}, 0.0, depth};
     }
 
-    Line best = {moves[0], maximising?-1e9:1e9,depth};
-    bool first=true;
+    Line best = {moves[0], maximising ? -1e9 : 1e9, depth};
+    bool first = true;
+
+    double alpha = -INFINITY;
+    double beta  = INFINITY;
 
     for(Move x :moves){
         Board::Undo u;
-        b.make(x,u);
-        double result =Minmax(b,depth-1,!maximising,-INFINITY,INFINITY,nodes,killer);
-        b.unmake(u);
-        if(first){
-            best ={x,result,depth};
+        b.make(x, u);
+        double result;
+        if (first){
+            // First move gets the full window
+            result = Minmax(
+                b, depth - 1, !maximising,
+                alpha, beta,
+                nodes, killer
+            );
+
             first = false;
-        }else if(maximising){
-            if(result > best.eval){ 
-                best = {x, result, depth};
+
+        } else if (maximising){
+            result = Minmax(
+                b, depth - 1, !maximising,
+                alpha, alpha + 1,
+                nodes, killer
+            );
+
+            if (result > alpha){
+                result = Minmax(
+                    b, depth - 1, !maximising,
+                    alpha, beta,
+                    nodes, killer
+                );
             }
-        }else{
-            if(result <best.eval){ 
-                best = {x, result, depth};
+
+        } else {
+
+            //no respect search to strangers
+            result = Minmax(b, depth - 1, !maximising,beta - 1, beta,nodes, killer);
+            if (result < beta) {
+                result = Minmax(b, depth - 1, !maximising,alpha, beta, nodes, killer);
             }
         }
+        b.unmake(u);
+        if (maximising){
+            if(result > best.eval){
+                best = {x, result, depth};
+            }
+            if (result > alpha)
+                alpha = result;
+        }else{
+            if (result < best.eval) {
+                best = {x, result, depth};
+            }
+            if (result < beta)
+                beta = result;
+        }
+        if (alpha >= beta)
+            break;
     }
     return best;
 }
