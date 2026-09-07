@@ -83,10 +83,15 @@ int main() {
             b.make(m, u);
         }else{
             auto start = Clock::now();
-            Line l = tbest_move(15.0f, true, b);
+            long nodes;
+            Line l = tbest_move(15.0f, true, b,nodes);
             auto end = Clock::now();
             std::chrono::duration<double> elapsed = end - start;
-            cout << "time: " <<elapsed.count() <<endl;
+            double n=nodes/1000000.0;
+            double t=elapsed.count();
+            cout << "time: " << t<<endl;
+            cout << "nodes(M): " <<n <<endl;
+            cout << "million nodes per second: " <<(n/t) <<endl;
             cout << "bot plays " <<(int)l.m.smallidx <<","<< (int)l.m.bigidx<<endl;
             cout << "evaluation: "<< l.eval<<endl;
             cout << "depth: " <<l.depth <<endl;

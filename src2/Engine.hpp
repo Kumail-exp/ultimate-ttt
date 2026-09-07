@@ -6,7 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <chrono>
-inline double Minmax(Board& b, int depth, bool maximising,double alpha, double beta) {
+inline double Minmax(Board& b, int depth, bool maximising,double alpha, double beta,long& nodes) {
     
 
     //winner type shift
@@ -40,20 +40,20 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     }
 
 
-    if (depth == 0) return Eval(b);
+    if (depth == 0){ return Eval(b);}
 
     double originalAlpha = alpha;
     double originalBeta = beta;
     double best = maximising ? -INFINITY : +INFINITY;
     Move bestMove = {9,9};
-
+    nodes+=moves.size();
     Move_ordering(moves);
     int champ=-1;
     if(maximising){
         for(Move x : moves){
             Board::Undo u;
             b.make(x,u);
-            double eval = Minmax(b,depth-1,false,alpha,beta);
+            double eval = Minmax(b,depth-1,false,alpha,beta,nodes);
             b.unmake(u);
             if(eval > best){
                 best =eval;
@@ -71,7 +71,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
         for (Move x : moves) {
             Board::Undo u;
             b.make(x, u);
-            double eval = Minmax(b, depth-1, true, alpha, beta);
+            double eval = Minmax(b, depth-1, true, alpha, beta,nodes);
             b.unmake(u);
             if (eval < best) {
                 best = eval;
@@ -105,7 +105,7 @@ struct Line{
     double eval;
     int depth;
 };
-inline Line best_move(int depth, bool maximising, Board b) {
+inline Line best_move(int depth, bool maximising, Board b,long& nodes) {
     if (b.winner != 0) {
         return {{9, 9},0.0,depth};//ts already over
     }
@@ -122,7 +122,7 @@ inline Line best_move(int depth, bool maximising, Board b) {
     for(Move x :moves){
         Board::Undo u;
         b.make(x,u);
-        double result =Minmax(b,depth-1,!maximising,-INFINITY,INFINITY);
+        double result =Minmax(b,depth-1,!maximising,-INFINITY,INFINITY,nodes);
         b.unmake(u);
         if(first){
             best ={x,result,depth};
@@ -139,10 +139,11 @@ inline Line best_move(int depth, bool maximising, Board b) {
     }
     return best;
 }
-inline Line tbest_move(float time, bool maximising, Board b){
+inline Line tbest_move(float time, bool maximising, Board b,long& nodes){
     //highly inspired from zammus design
     using Clock = std::chrono::high_resolution_clock;
     using sec = std::chrono::duration<double>;
+    nodes=0;
     auto start= Clock::now();
     auto softEnd= start + sec(time * 0.85);
     auto hardEnd= start + sec(time * 0.96);
@@ -165,7 +166,7 @@ inline Line tbest_move(float time, bool maximising, Board b){
         }
 
         auto depthStart = Clock::now();
-        Line candidate = best_move(depth, maximising, b);
+        Line candidate = best_move(depth, maximising, b,nodes);
         auto depthEnd  = Clock::now();
         lastDepthTime = sec(depthEnd - depthStart).count();
 
