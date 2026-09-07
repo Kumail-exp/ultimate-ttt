@@ -8,10 +8,10 @@ public:
     //ts bout to be the main board
     uint32_t small[9] = {0};
 
-    //like the equivalent of smallones, u get it wont u 
+    //like the equivalent of small ones, u get it 
     uint32_t meta = 0;
 
-    //i usemy ultimaste technique of being a chud and stealing this technique from the big projevts so its def fast af
+    //i usemy ultimate technique of being a chud and stealing this technique from the big projevts so its def fast af
 
     //0 to 8 is just adress and 9 is freemove, agressive space aving type shi
     uint8_t next = 9;
@@ -21,9 +21,6 @@ public:
     //0-ongoing, 1-x win, 2-o win, 3- draw 
     uint8_t winner = 0;
     
-    //hash is now not caluclated each time but maintained throuhghout
-    uint64_t hash = 0;
-
     //inline makes shits faster
     inline int get(int bigidx, int smallidx) const {
         return (small[bigidx] >> (2 * smallidx)) & 3;

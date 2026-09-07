@@ -2,6 +2,7 @@
 #include "Board.hpp"
 #include "Eval.hpp"
 #include "Move.hpp"
+#include "TT.hpp"
 #include <cmath>
 #include <vector>
 #include <chrono>
@@ -9,14 +10,25 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     
 
     //winner type shift
-    if (b.winner == 1) return  1e9;
-    if (b.winner == 2) return -1e9;
+    if (b.winner == 1) return  10000+depth;
+    if (b.winner == 2) return -10000-depth;
     if (b.winner == 3) return  0.0;
 
 
     std::vector<Move> moves;
     b.legalMoves(moves);
     if (moves.empty()) return 0.0;
+
+    //searching in tt
+    auto it=transpositionTable.find(Hash(b));
+    if(it!=transpositionTable.end()){
+        TT& entry = it->second;
+        if (entry.depth >= depth){ //remember the lower depth here is acually higher 
+            return entry.eval;
+        }
+    }
+
+
     if (depth == 0) return Eval(b);
 
     double originalAlpha = alpha;
@@ -59,6 +71,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             }
         }
     }
+    store(b,depth,best);
     return best;
 }
 
@@ -116,7 +129,7 @@ inline Line tbest_move(float time, bool maximising, Board b){
     if (rootmoves.empty()) return best;
     best.m = rootmoves[0];
 
-    for (int depth = 6; depth <= 25; ++depth) {
+    for (int depth = 8; depth <= 82; depth++) {
         auto now = Clock::now();
         if (now >= softEnd) break;
 

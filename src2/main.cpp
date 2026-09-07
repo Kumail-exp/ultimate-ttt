@@ -32,6 +32,7 @@ void printBoard(const Board& b) {
 }
 
 int main() {
+    init();
     Board b;
     Board::Undo u;
     
