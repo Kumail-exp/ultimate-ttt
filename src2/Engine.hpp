@@ -7,7 +7,7 @@
 #include <vector>
 #include <chrono>
 inline double Minmax(Board& b, int depth, bool maximising,double alpha, double beta,long& nodes) {
-    
+    nodes++ ;
 
     //winner type shift
     if (b.winner == 1) return  10000+depth;
@@ -46,14 +46,21 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     double originalBeta = beta;
     double best = maximising ? -INFINITY : +INFINITY;
     Move bestMove = {9,9};
-    nodes+=moves.size();
     Move_ordering(moves);
     int champ=-1;
+    bool first=true;
     if(maximising){
+        double eval;
         for(Move x : moves){
             Board::Undo u;
             b.make(x,u);
-            double eval = Minmax(b,depth-1,false,alpha,beta,nodes);
+            if(first){
+                first=false;  
+                eval = Minmax(b,depth-1,false,alpha,beta,nodes);
+            }else{ 
+                eval=Minmax(b,depth-1,false,alpha,alpha+1,nodes);
+                if(eval > alpha) eval = Minmax(b, depth-1, false, alpha, beta,nodes);
+            }
             b.unmake(u);
             if(eval > best){
                 best =eval;
@@ -68,10 +75,17 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             }
         }
     } else {
+        double eval;
         for (Move x : moves) {
             Board::Undo u;
             b.make(x, u);
-            double eval = Minmax(b, depth-1, true, alpha, beta,nodes);
+            if(first){
+                first=false;
+                eval = Minmax(b, depth-1, true, alpha, beta,nodes);
+            }else{ 
+                eval = Minmax(b, depth-1, true, beta-1, beta,nodes);
+                if(eval <beta) eval = Minmax(b, depth-1, true, alpha, beta,nodes);
+            }
             b.unmake(u);
             if (eval < best) {
                 best = eval;
@@ -96,7 +110,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
         flag = EXACT;
 
     store(b, depth, best, flag);
-    MOVE_IMPORTANCE[champ]+=(depth/100);
+    MOVE_IMPORTANCE[champ]+=(depth/100.0);
     return best;
 }
 
