@@ -49,17 +49,26 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     Move_ordering(moves,killer);
     int champ=-1;
     bool first=true;
+    int movenum=0;
     if(maximising){
         double eval;
         for(Move x : moves){
             Board::Undo u;
             b.make(x,u);
-            if(first){
-                first=false;  
-                eval = Minmax(b,depth-1,false,alpha,beta,nodes,killer);
-            }else{ 
-                eval=Minmax(b,depth-1,false,alpha,alpha+1,nodes,killer);
-                if(eval > alpha) eval = Minmax(b, depth-1, false, alpha, beta,nodes,killer);
+            if (movenum < 3 || depth <= 3){
+                if(first){
+                    first=false;  
+                    eval = Minmax(b,depth-1,false,alpha,beta,nodes,killer);
+                }else{ 
+                    eval=Minmax(b,depth-1,false,alpha,alpha+1,nodes,killer);
+                    if(eval > alpha) eval = Minmax(b, depth-1, false, alpha, beta,nodes,killer);
+                }
+            }else{
+                eval = Minmax(b, depth - 2, false, alpha, alpha + 1, nodes, killer);
+                
+                if (eval > alpha) {
+                    eval = Minmax(b, depth - 1, false,alpha, beta, nodes, killer);
+                }
             }
             b.unmake(u);
             if(eval > best){
@@ -73,18 +82,27 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             if(beta <= alpha){
                 break;
             }
+            movenum++;
         }
     } else {
         double eval;
         for (Move x : moves) {
             Board::Undo u;
             b.make(x, u);
-            if(first){
-                first=false;
-                eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
-            }else{ 
-                eval = Minmax(b, depth-1, true, beta-1, beta,nodes,killer);
-                if(eval <beta) eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
+            if (movenum < 3 || depth <= 3){
+                if(first){
+                    first=false;
+                    eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
+                }else{ 
+                    eval = Minmax(b, depth-1, true, beta-1, beta,nodes,killer);
+                    if(eval <beta) eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
+                }
+            }else{
+                eval = Minmax(b, depth - 2, true,beta - 1, beta, nodes, killer);
+
+                if (eval < beta) {
+                    eval = Minmax(b, depth - 1, true,alpha, beta, nodes, killer);
+                }
             }
             b.unmake(u);
             if (eval < best) {
@@ -98,6 +116,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             if(beta <= alpha){
                 break;  
             }
+            movenum++;
         }
     }
     
