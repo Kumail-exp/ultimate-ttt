@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <vector>
-#include "Zobrist.hpp"
 #include "Move.hpp"
 
 class Board {
@@ -115,35 +114,9 @@ public:
             }
             if (full) winner = 3;
         }
-
-        //noe for hashing 
-        auto& z = zobrist();
-        hash ^= z.cell[m.bigidx][m.smallidx][u.old_player];
-        hash ^= z.next[u.old_next];
-        hash ^= z.next[next];
-        hash ^= z.side;
-
-        int oldMetaVal = (u.old_meta >> (2 * m.bigidx)) & 3;
-        int newMetaVal = (meta      >> (2 * m.bigidx)) & 3;
-        if (oldMetaVal != newMetaVal) {
-            if (oldMetaVal) hash ^= z.meta[m.bigidx][oldMetaVal];
-            if (newMetaVal) hash ^= z.meta[m.bigidx][newMetaVal];
-        }
     }
 
     void unmake(const Undo& u){
-        auto& z = zobrist();
-        hash ^= z.cell[u.big][u.small][u.old_player];
-        hash ^= z.next[next];
-        hash ^= z.next[u.old_next];
-        hash ^= z.side;
-
-        int oldMetaVal = (u.old_meta >> (2 * u.big)) & 3;
-        int newMetaVal = (meta      >> (2 * u.big)) & 3;
-        if (oldMetaVal != newMetaVal) {
-            if (newMetaVal) hash ^= z.meta[u.big][newMetaVal];
-            if (oldMetaVal) hash ^= z.meta[u.big][oldMetaVal];
-        }
         small[u.big] = u.old_small;
         meta = u.old_meta;
         next = u.old_next;

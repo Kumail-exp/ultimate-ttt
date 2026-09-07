@@ -1,6 +1,5 @@
 #pragma once
 #include "Board.hpp"
-#include "Zobrist.hpp"
 #include "Eval.hpp"
 #include "Move.hpp"
 #include <cmath>
@@ -14,11 +13,6 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     if (b.winner == 2) return -1e9;
     if (b.winner == 3) return  0.0;
 
-    Move ttMove = {9,9};
-    double ttScore;
-    if (ttProbe(b.hash, depth, alpha, beta, ttScore, ttMove)) {
-        return ttScore;
-    }
 
     std::vector<Move> moves;
     b.legalMoves(moves);
@@ -65,15 +59,6 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
             }
         }
     }
-
-
-    TTFlag flag = TT_EXACT;
-    if (best <= originalAlpha) flag = TT_UPPER;
-    else if (best >= originalBeta){
-        flag = TT_LOWER;
-    }
-
-    ttStore(b.hash,depth,best,flag,bestMove);
     return best;
 }
 
