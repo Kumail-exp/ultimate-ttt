@@ -3,12 +3,12 @@
 #include "Move.hpp"
 #include <cstdint>
 #include <random>
-#include <unordered_map>
 
+int constexpr TABLE_SIZE=1048576;
 //initing 
 void init(){
     std::mt19937_64 rng(142857);//ts number aint random iykyk
-
+    
     for(int i=0;i<9;i++){
         for(int j=0;j<9;j++){ 
             k_board[i][j][0] = rng();
@@ -48,10 +48,8 @@ struct TT{
     int depth;
     Flag flag;
 };
-
-std::unordered_map<uint64_t, TT> transpositionTable;
-
+TT transpositionTable[TABLE_SIZE]={{-1,-1,EXACT}};
 
 void store(Board& b, int depth,double eval,Flag f){
-    transpositionTable[b.i_hash]={eval,depth,f};
+    transpositionTable[b.i_hash&(TABLE_SIZE-1)]={eval,depth,f};
 }

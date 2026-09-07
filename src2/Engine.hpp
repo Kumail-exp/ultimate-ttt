@@ -20,22 +20,21 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     if (moves.empty()) return 0.0;
 
     //searching in tt
-    auto it=transpositionTable.find(b.i_hash);
-    if(it!=transpositionTable.end()){
-        TT& entry = it->second;
-        if(entry.depth >= depth){
+    auto it=transpositionTable[b.i_hash&(TABLE_SIZE-1)];
+    if(it.depth!=-1){
+        if(it.depth >= depth){
             //again as a reminder i hate alpha beta
-            if(entry.flag == EXACT)
-                return entry.eval;
+            if(it.flag == EXACT)
+                return it.eval;
 
-            if(entry.flag == LOWERBOUND)
-                alpha = std::max(alpha, entry.eval);
+            if(it.flag == LOWERBOUND)
+                alpha = std::max(alpha, it.eval);
 
-            else if(entry.flag == UPPERBOUND)
-                beta = std::min(beta, entry.eval);
+            else if(it.flag == UPPERBOUND)
+                beta = std::min(beta, it.eval);
 
             if(alpha >= beta)
-                return entry.eval;
+                return it.eval;
         }
     }
 
