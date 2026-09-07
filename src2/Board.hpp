@@ -2,7 +2,11 @@
 #include <cstdint>
 #include <vector>
 #include "Move.hpp"
-
+//board
+uint64_t k_board[9][9][2];
+//extra values:
+uint64_t k_player;
+uint64_t k_next[10];
 class Board {
 public:
     //ts bout to be the main board
@@ -20,7 +24,13 @@ public:
     //one commewnt a day keeps the bugs away 
     //0-ongoing, 1-x win, 2-o win, 3- draw 
     uint8_t winner = 0;
-    
+
+    //i cant believe i am doing ts
+    uint64_t i_hash=0;
+    Board(){
+        i_hash^=k_next[next];
+        if(player==1) i_hash^=k_player;
+    }
     //inline makes shits faster
     inline int get(int bigidx, int smallidx) const {
         return (small[bigidx] >> (2 * smallidx)) & 3;
@@ -81,6 +91,8 @@ public:
         u.old_player = player;
         u.old_winner = winner;
 
+        if(player==1) i_hash^=k_board[m.bigidx][m.smallidx][0];
+        else i_hash^=k_board[m.bigidx][m.smallidx][1];
         set(m.bigidx, m.smallidx, player);
 
         //update if the big one got updated
@@ -91,12 +103,15 @@ public:
         } else if (isSmallFull(m.bigidx)) {
             //remain empty useless condition
         }
-
+        i_hash ^= k_next[next];
         next = m.smallidx;
         if (next > 8 || ((meta >> (2 * next)) & 3) || isSmallFull(next)) {
             next = 9;
         }
+        i_hash ^= k_next[next];
+        if(player==1) i_hash^=k_player;
         player = 3 - player;
+        if(player==1) i_hash^=k_player;
         //total winner time
         winner = checkMetaWin();
 
@@ -111,13 +126,23 @@ public:
             }
             if (full) winner = 3;
         }
+        
+         
     }
 
     void unmake(const Undo& u){
+        if(u.old_player==1) i_hash^=k_board[u.big][u.small][0];
+        else i_hash^=k_board[u.big][u.small][1];
+        
         small[u.big] = u.old_small;
         meta = u.old_meta;
+        i_hash^=k_next[next];
         next = u.old_next;
+        i_hash^=k_next[next];
+        if(player==1) i_hash^=k_player;
         player = u.old_player;
+        if(player==1) i_hash^=k_player;
+
         winner = u.old_winner;
     }
 

@@ -4,11 +4,7 @@
 #include <cstdint>
 #include <random>
 #include <unordered_map>
-//board
-uint64_t k_board[9][9][2];
-//extra values:
-uint64_t k_player;
-uint64_t k_next[10];
+
 //initing 
 void init(){
     std::mt19937_64 rng(142857);//ts number aint random iykyk
@@ -57,5 +53,5 @@ std::unordered_map<uint64_t, TT> transpositionTable;
 
 
 void store(Board& b, int depth,double eval,Flag f){
-    transpositionTable[Hash(b)]={eval,depth,f};
+    transpositionTable[b.i_hash]={eval,depth,f};
 }
