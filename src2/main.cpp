@@ -33,6 +33,7 @@ void printBoard(const Board& b) {
 
 int main() {
     init();
+    initPosScore();
     Board b;
     Board::Undo u;
     

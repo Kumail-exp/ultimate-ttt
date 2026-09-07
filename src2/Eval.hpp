@@ -24,7 +24,18 @@ static const int WIN9[8] = {
     0b100010001, // 0 4 8
     0b001010100  // 2 4 6
 };
+int POS_SCORE[512];
 
+void initPosScore() {
+    for (int bits = 0; bits < 512; ++bits) {
+        int score = 0;
+        for (int i = 0; i < 9; ++i) {
+            if (bits & (1 << i))
+                score += LOCAL_POS[i];
+        }
+        POS_SCORE[bits] = score;
+    }
+}
 void Move_ordering(std::vector<Move>& legals){
     //who better than the out beloved insertion sort
     for (int i = 1; i < legals.size(); ++i) {
@@ -57,55 +68,35 @@ inline int evaluateLocal(uint32_t s, bool meIsX){
     extractBits(s, xBits, oBits);
     int myBits  = meIsX ? xBits : oBits;
     int oppBits = meIsX ? oBits : xBits;
-    int score = 0;
-
-    //positional ahh
-    for (int i=0;i<9;++i) {
-        if(myBits &(1<<i)){
-            score += LOCAL_POS[i];
-        }
-        if(oppBits&(1<<i)){
-            score -= LOCAL_POS[i];
-        }
-    }
-
+    int score = POS_SCORE[myBits] - POS_SCORE[oppBits];
     // threats
     for (int mask:WIN9){
-        //holy didnt knew this function existed thanks GCC
         int my  = __builtin_popcount(myBits  & mask);
         int opp = __builtin_popcount(oppBits & mask);
-        int emp = __builtin_popcount((~(myBits | oppBits)) & mask);
 
-        if(my==2 && emp==1){ 
+        if (my == 2 && opp == 0)
             score += 28;
-        }else{ 
-            if(my==1 && emp==2){ 
-                score += 5;
-            }
-        }
-
-        if(opp==2 && emp==1){ 
+        else if (my == 1 && opp == 0)
+            score += 5;
+        if (opp == 2 && my == 0)
             score -= 28;
-        }else{ 
-            if(opp==1 && emp==2){
-                score -= 5;
-            }
-        }
+        else if (opp == 1 && my == 0)
+            score -= 5;
     }
+
     return score;
 }
-
 inline  float Eval(const Board& b) {
     //relative to only x perspective unlike zammy
     float score = 0.0f;
     for (int g = 0; g < 9; ++g) {
-        int w = b.checkSmallWin(g);
+        int w =((b.meta >> (2 * g)) & 3);
         int weight = GLOBAL_WEIGHT[g];
         if(w==1){
-            score+=140*weight;
+            score+=weight*100.0f;
         }else if (w == 2){
-            score-=140*weight;
-        }else if (!b.isSmallFull(g)){
+            score-=weight*100.0f;
+        }else if (w==0){
             //local threats idea was mine tbh i recommended zammu to add it
             score += evaluateLocal(b.small[g], true) * weight;
         }
