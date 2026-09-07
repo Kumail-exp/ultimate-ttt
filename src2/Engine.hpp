@@ -15,30 +15,31 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
     if (b.winner == 3) return  0.0;
 
 
+    
+    //searching in tt
+    auto it=transpositionTable[b.i_hash&(TABLE_SIZE-1)];
+    if(it.key==b.i_hash){
+        if(it.depth!=-1){
+            if(it.depth >= depth){
+                //again as a reminder i hate alpha beta
+                if(it.flag == EXACT)
+                return it.eval;
+                
+                if(it.flag == LOWERBOUND)
+                alpha = std::max(alpha, it.eval);
+                
+                else if(it.flag == UPPERBOUND)
+                beta = std::min(beta, it.eval);
+                
+                if(alpha >= beta)
+                return it.eval;
+            }
+        }
+    }
     std::vector<Move> moves;
     b.legalMoves(moves);
     if (moves.empty()) return 0.0;
-
-    //searching in tt
-    auto it=transpositionTable[b.i_hash&(TABLE_SIZE-1)];
-    if(it.depth!=-1){
-        if(it.depth >= depth){
-            //again as a reminder i hate alpha beta
-            if(it.flag == EXACT)
-                return it.eval;
-
-            if(it.flag == LOWERBOUND)
-                alpha = std::max(alpha, it.eval);
-
-            else if(it.flag == UPPERBOUND)
-                beta = std::min(beta, it.eval);
-
-            if(alpha >= beta)
-                return it.eval;
-        }
-    }
-
-
+    
     if (depth == 0){ return Eval(b);}
 
     double originalAlpha = alpha;

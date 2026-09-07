@@ -44,12 +44,13 @@ enum Flag{
 
 //now comes the tt
 struct TT{
+    uint64_t key; //to verify wether we actually checking the right one
     double eval;
     int depth;
     Flag flag;
 };
-TT transpositionTable[TABLE_SIZE]={{-1,-1,EXACT}};
+TT transpositionTable[TABLE_SIZE];
 
 void store(Board& b, int depth,double eval,Flag f){
-    transpositionTable[b.i_hash&(TABLE_SIZE-1)]={eval,depth,f};
+    transpositionTable[b.i_hash&(TABLE_SIZE-1)]={b.i_hash,eval,depth,f};
 }
