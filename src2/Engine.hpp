@@ -96,7 +96,7 @@ inline double Minmax(Board& b, int depth, bool maximising,double alpha, double b
         flag = EXACT;
 
     store(b, depth, best, flag);
-    MOVE_IMPORTANCE[champ]+0.1;
+    MOVE_IMPORTANCE[champ]+=(depth/100);
     return best;
 }
 

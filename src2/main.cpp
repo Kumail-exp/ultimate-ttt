@@ -47,7 +47,7 @@ int main() {
             break;
         }
 
-        if (b.player == 2) { 
+        if (b.player == 1) { 
             unsigned int r, c;
             Move m;
             bool ok = false;
@@ -84,7 +84,7 @@ int main() {
         }else{
             auto start = Clock::now();
             long nodes;
-            Line l = tbest_move(15.0f, true, b,nodes);
+            Line l = tbest_move(15.0f, false, b,nodes);
             auto end = Clock::now();
             std::chrono::duration<double> elapsed = end - start;
             double n=nodes/1000000.0;
