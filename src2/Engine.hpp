@@ -5,6 +5,8 @@
 #include "TT.hpp"
 #include <cmath>
 #include <vector>
+#include <atomic>
+#include <thread>
 #include <chrono>
 inline double Minmax(Board& b, int depth, bool maximising,double alpha, double beta,long& nodes,int& killer) {
     nodes++ ;
@@ -212,10 +214,20 @@ inline Line best_move(int depth, bool maximising, Board b,long& nodes,int& kille
     }
     return best;
 }
+inline Line worker_bestmove(int depth,bool maximising,Board b,Move x,long& nodes,int killer){
+    Board::Undo u;
+    b.make(x, u);
+    double result = Minmax(b,depth - 1,!maximising,-INFINITY,INFINITY,nodes,killer);
+    b.unmake(u);
+    return {x, result, depth};
+}
+
+
 inline Line tbest_move(float time, bool maximising, Board b,long& nodes){
     //highly inspired from zammus design
     using Clock = std::chrono::high_resolution_clock;
     using sec = std::chrono::duration<double>;
+    constexpr int THREADS = 4;//i M ON LOW END PC SRYY ^-^
     nodes=0;
     auto start= Clock::now();
     auto softEnd= start + sec(time * 0.85);
@@ -240,11 +252,72 @@ inline Line tbest_move(float time, bool maximising, Board b,long& nodes){
         }
 
         auto depthStart = Clock::now();
-        Line candidate = best_move(depth, maximising, b,nodes,k);
-        auto depthEnd  = Clock::now();
-        lastDepthTime = sec(depthEnd - depthStart).count();
 
-        // only accept the result if we finished before the hard deadline
+        //here comes the part stolen from internet;
+        std::vector<Line> results(rootmoves.size());
+        std::vector<long> threadNodes(THREADS, 0);
+
+        std::atomic<size_t> next{0};
+
+        auto worker = [&](int tid){
+
+            int localKiller = k;
+
+            while (true) {
+
+                size_t i = next.fetch_add(1);
+
+                if (i >= rootmoves.size())
+                    break;
+
+                results[i] = worker_bestmove(
+                    depth,
+                    maximising,
+                    b,
+                    rootmoves[i],
+                    threadNodes[tid],
+                    localKiller
+                );
+            }
+        };
+
+        int threadCount = std::min(
+            THREADS,
+            static_cast<int>(rootmoves.size())
+        );
+
+        std::vector<std::thread> workers;
+        workers.reserve(threadCount);
+
+        for (int i = 0; i < threadCount; i++)
+            workers.emplace_back(worker, i);
+
+        for (auto& t : workers)
+            t.join();
+
+        nodes = 0;
+
+        for (long n : threadNodes)
+            nodes += n;
+
+        Line candidate = results[0];
+
+        for (size_t i = 1; i < results.size(); i++) {
+
+            if (maximising) {
+
+                if (results[i].eval > candidate.eval)
+                    candidate = results[i];
+
+            } else {
+
+                if (results[i].eval < candidate.eval)
+                    candidate = results[i];
+            }
+        }
+        auto depthEnd = Clock::now();
+        lastDepthTime =
+            sec(depthEnd - depthStart).count();
         if (depthEnd < hardEnd) {
             best = candidate;
         } else {
