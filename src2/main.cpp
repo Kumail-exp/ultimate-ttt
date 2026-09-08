@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <fstream>
 #include <chrono>
 using Clock = std::chrono::high_resolution_clock;
 using namespace std;
@@ -30,14 +31,38 @@ void printBoard(const Board& b) {
     cout << "Next board: " << (b.next == 9 ? "FREE" : to_string(b.next)) << '\n';
     cout << "Player to move: " << (b.player == 1 ? "X" : "O") << "\n\n";
 }
+void add_to_hist(const Board& b){
 
+    std::ofstream out("hist.txt", std::ios::app);
+
+    if (!out){
+        std::cerr << "could not open hist.txt\n";
+        return;
+    }
+    out<<"==========;\n";
+    
+    for (int i = 0; i < 9; i++) {
+        if (i) out << ",";
+        out << b.small[i];
+    }
+
+    out << ";\n";
+    out << static_cast<int>(b.next) << ";\n";
+    out << static_cast<int>(b.player) << ";\n";
+}   
 int main() {
+    int movenum=0;
     init();
     initPosScore();
     Board b;
     Board::Undo u;
     
     while (b.winner == 0) {
+        movenum++;
+        if(movenum<=10){
+            add_to_hist(b);
+            std::cout << "saved\n";
+        }
         printBoard(b);
 
         vector<Move> moves;
@@ -85,7 +110,7 @@ int main() {
         }else{
             auto start = Clock::now();
             long nodes;
-            Line l = tbest_move(15.0f, false, b,nodes);
+            Line l = tbest_move(9.0f, false, b,nodes);
             auto end = Clock::now();
             std::chrono::duration<double> elapsed = end - start;
             double n=nodes/1000000.0;

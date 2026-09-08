@@ -241,7 +241,7 @@ inline Line tbest_move(float time, bool maximising, Board b,long& nodes){
     best.m = rootmoves[0];
     int k=1;
     //no risk gng
-    for (int depth = 1; depth <= 82; depth++) {
+    for (int depth = 8; depth <= 82; depth++) {
         auto now = Clock::now();
         if (now >= softEnd) break;
 
