@@ -53,7 +53,35 @@ void Move_ordering(std::vector<Move>& legals,int small_killer){
         legals[j] = key;
     }
 }
+inline int evaluateMeta(const Board& b) {
+    int xBits = 0;
+    int oBits = 0;
+    for (int g=0; g < 9; ++g) {
+        int w =(b.meta >> (2 * g)) & 3;
+        if(w == 1)
+            xBits |=(1 << g);
+        else if(w==2)
+            oBits|=(1 << g);
+    }
 
+    int score = 0;
+    score += POS_SCORE[xBits];
+    score -= POS_SCORE[oBits];
+    for (int mask : WIN9){
+        //i could have just copy pasted it from below i am dumb
+        int x = __builtin_popcount(xBits & mask);
+        int o = __builtin_popcount(oBits & mask);
+        if (x == 2 && o == 0)
+            score += 1000;
+        else if (x == 1 && o == 0)
+            score += 50;
+        if (o == 2 && x == 0)
+            score -= 1000;
+        else if (o == 1 && x == 0)
+            score -= 50;
+    }
+    return score;
+}
 //extract the funky ahh from the bits
 inline void extractBits(uint32_t s, int& xBits, int& oBits) {
     xBits = oBits = 0;
@@ -94,7 +122,7 @@ inline int evaluateLocal(uint32_t s, bool meIsX){
 }
 inline  float Eval(const Board& b) {
     //relative to only x perspective unlike zammy
-    float score = 0.0f;
+    float score = evaluateMeta(b);
     for (int g = 0; g < 9; ++g) {
         int w =((b.meta >> (2 * g)) & 3);
         int weight = GLOBAL_WEIGHT[g];

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <random>
 
-int constexpr TABLE_SIZE=1048576;
+int constexpr TABLE_SIZE=50000000;
 //initing 
 void init(){
     std::mt19937_64 rng(142857);//ts number aint random iykyk
@@ -18,7 +18,7 @@ void init(){
     k_player=rng();
     for(int i=0;i<10;i++) k_next[i]=rng();
 }
-inline uint64_t Hash(Board& b){
+inline uint64_t Hash(Board& b){  
     uint64_t hs=0;
     
     for(int i=0;i<9;i++){
