@@ -1,196 +1,180 @@
 #pragma once
-#include "Row.hpp"
-#include <iostream>
+#include <cstdint>
 #include <vector>
-struct Move{
-    int smallidx,bigidx;
-};
+#include "Move.hpp"
+//board
+uint64_t k_board[9][9][2];
+//extra values:
+uint64_t k_player;
+uint64_t k_next[10];
+class Board {
+public:
+    //ts bout to be the main board
+    uint32_t small[9] = {0};
 
-class Board{
-    public:
-    Row board[9];
-    Row winners; //will contain the winners of bigger board
-    bool freemove=true;
-    bool Aturn=true;
-    int nextBig=-1;
-    int get(int r,int c){
-        return board[r].cellAt(c);
+    //like the equivalent of small ones, u get it 
+    uint32_t meta = 0;
+
+    //i usemy ultimate technique of being a chud and stealing this technique from the big projevts so its def fast af
+
+    //0 to 8 is just adress and 9 is freemove, agressive space aving type shi
+    uint8_t next = 9;
+    //1 is x 2 is o
+    uint8_t player = 1;
+    //one commewnt a day keeps the bugs away 
+    //0-ongoing, 1-x win, 2-o win, 3- draw 
+    uint8_t winner = 0;
+
+    //i cant believe i am doing ts
+    uint64_t i_hash=0;
+    Board(){
+        i_hash^=k_next[next];
+        if(player==1) i_hash^=k_player;
     }
-    int get(Move m){
-        //assuming that the m has r,c in pace of smallidx,bigidx
-        return board[m.smallidx].cellAt(m.bigidx);
+    //inline makes shits faster
+    inline int get(int bigidx, int smallidx) const {
+        return (small[bigidx] >> (2 * smallidx)) & 3;
     }
-    void set(int r,int c,u_int8_t val){
-        board[r].change(c,val);
+
+    inline void set(int bigidx, int smallidx, int val) {
+        small[bigidx] &= ~(3u << (2 * smallidx));
+        small[bigidx] |= (val << (2 * smallidx));
     }
-    void print(){
-        std::cout<< "Here is your board:"<<std::endl;
-        for(int i=0;i<9;i++){
-            if(i%3==0){std::cout<<"\n";}
-            std::cout<<board[i].str()<<std::endl;
+
+    //Now comes the holy moly speed 
+    //making ts constexpr for hyper diaper comppiler optmisations
+    static constexpr uint32_t WIN_MASKS[8] = {
+        //moat annoting piece of code i have written
+        0b00000000000000000000000000111111,//cells 0,1,2
+        0b00000000000000000000111111000000,//cells 3,4,5
+        0b00000000000000111111000000000000,//cells 6,7,8
+        0b00000000000000000011000011000011,//cells 0,3,6
+        0b00000000000000001100001100001100,//cells 1,4,7
+        0b00000000000000110000110000110000,//cells 2,5,8
+        0b00000000000000110000001100000011,//cells 0,4,8
+        0b00000000000000000011001100110000 //cells 2,4,6
+    };
+
+    //0-ongoing, 1-x win, 2-o win
+    int checkSmallWin(int b) const {
+        uint32_t s = small[b];
+        for (uint32_t mask : WIN_MASKS) {
+            uint32_t line = s & mask;
+            if (line == (mask & 0b010101010101010101)) return 1;
+            if (line == (mask & 0b101010101010101010)) return 2;
         }
-    }
-    int winnercheck(){
-        int r[3]={1,1,1},c[3]={1,1,1},d[2]={1,1};
-        for(int i=0;i<3;i++){
-            for(int j=0;j<3;j++){
-                int e=winners.cellAt(3*i+j);
-                r[i]*=e;
-                c[j]*=e;
-                if(i==j){
-                    d[0]*=e;
-                }
-                if(i+j==2){
-                    d[1]*=e;
-                }
-            }
-        }
-        for(int i=0;i<3;i++){
-            if(r[i]==1 || c[i]==1 ) return 1;
-            if(r[i]==8 || c[i]==8 ) return 2;
-        }
-        if(d[0]==1 || d[1]==1 ) return 1;
-        if(d[0]==8 || d[1]==8 ) return 2;
         return 0;
     }
-    bool isValid(int r, int c) {
-        if (winners.cellAt((r / 3) * 3 + (c / 3)) != 0) {
-            return false;
+
+    bool isSmallFull(int b) const{
+        //obv most of these shorthand tricks are stolen (from humans)
+        uint32_t s = small[b];
+        return ((s | (s >> 1)) & 0b010101010101010101) == 0b010101010101010101;
+    }
+    //here comes the harder shit to do 
+    struct Undo {
+        //also not messing up this time
+        uint32_t old_small;
+        uint32_t old_meta;
+        uint8_t  old_next;
+        uint8_t  old_player;
+        uint8_t  old_winner;
+        uint8_t  big, small;
+    };
+
+    void make(Move m, Undo& u) {
+        u.big = m.bigidx;
+        u.small = m.smallidx;
+        u.old_small = small[m.bigidx];
+        u.old_meta = meta;
+        u.old_next = next;
+        u.old_player = player;
+        u.old_winner = winner;
+
+        if(player==1) i_hash^=k_board[m.bigidx][m.smallidx][0];
+        else i_hash^=k_board[m.bigidx][m.smallidx][1];
+        set(m.bigidx, m.smallidx, player);
+
+        //update if the big one got updated
+        int w = checkSmallWin(m.bigidx);
+        if(w){
+            meta&= ~(3u<<(2*m.bigidx));
+            meta|=(w<<(2*m.bigidx));
+        } else if (isSmallFull(m.bigidx)) {
+            //remain empty useless condition
         }
-        if (freemove) {
-            return board[r].cellAt(c) == 0;
+        i_hash ^= k_next[next];
+        next = m.smallidx;
+        if (next > 8 || ((meta >> (2 * next)) & 3) || isSmallFull(next)) {
+            next = 9;
         }
-        if (r / 3 == nextBig / 3 && c / 3 == nextBig % 3) {
-            return board[r].cellAt(c) == 0;
+        i_hash ^= k_next[next];
+        if(player==1) i_hash^=k_player;
+        player = 3 - player;
+        if(player==1) i_hash^=k_player;
+        //total winner time
+        winner = checkMetaWin();
+
+        //detect global draw if meta is completely full and no one won
+        if (winner == 0) {
+            bool full = true;
+            for (int i = 0; i < 9; ++i) {
+                if (((meta >> (2 * i)) & 3) == 0 && !isSmallFull(i)) {
+                    full = false;
+                    break;
+                }
+            }
+            if (full) winner = 3;
         }
         
-        return false;
-    }
-    bool isValid(Move m){
-        int r = (m.bigidx / 3) * 3 + (m.smallidx / 3);
-        int c = (m.bigidx % 3) * 3 + (m.smallidx % 3);
-        return isValid(r, c);
+         
     }
 
-    int pop(int smallidx,int bigidx,int rtg){
-        int r=(bigidx/3)*3+(smallidx/3),c=(bigidx%3)*3+(smallidx%3);
-        int val=get(r,c);
-        set(r,c,0);
-        updateall();
-        nextBig=rtg;
-        Aturn=!Aturn;
-        checkfreemove();
-        return val;
-    }
-    bool isCellFull(int cellno){
-        for(int i=0;i<3;i++){   
-            for(int j=0;j<3;j++){
-                if(get((cellno/3)*3 + i, (cellno%3)*3 + j)==0){
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    void checkfreemove(){
-        if(nextBig==-1){
-            freemove=true;
-            return;
-        }
-        if(winners.cellAt(nextBig)!=0){
-            freemove=true;
-            nextBig=-1;
-            return;
-        }
-        if(isCellFull(nextBig)){
-            freemove=true;
-            nextBig=-1;
-            return;
-        }
-        freemove=false;
-    }
-    std::vector<Move> legalMoves(){
-        //i am such too dumb to add more move ordering parameters to ts
-        std::vector<Move> moves;
-        std::vector<int> order={1,3,5,7,0,2,6,8,4};
-        if(!freemove){
-            for(int i:order){
-                if(isValid((nextBig/3)*3+(i/3),(nextBig%3)*3+(i%3))){
-                    moves.push_back({i,nextBig});
-                }
-            }
-            return moves;
-        }
-        for(int r=0;r<9;r++){
-            if(winners.cellAt(r)!=0){
-                continue;
-            }
-            for(int i:order){
-                if(isValid((r/3)*3+(i/3),(r%3)*3+(i%3))){
-                        moves.push_back({i,r});
-                }
-            }
-        }
-        return moves;
-    }
-    void move(int smallidx,int cellno=-1){
-        if(cellno==-1){
-            cellno=nextBig;
-        }
+    void unmake(const Undo& u){
+        if(u.old_player==1) i_hash^=k_board[u.big][u.small][0];
+        else i_hash^=k_board[u.big][u.small][1];
+        
+        small[u.big] = u.old_small;
+        meta = u.old_meta;
+        i_hash^=k_next[next];
+        next = u.old_next;
+        i_hash^=k_next[next];
+        if(player==1) i_hash^=k_player;
+        player = u.old_player;
+        if(player==1) i_hash^=k_player;
 
-        int br=cellno/3,bc=cellno%3;
-        int sr=smallidx/3,sc=smallidx%3;
-        if (!isValid(br*3+sr,bc*3+sc)) {
-            std::cerr << "Invalid:" <<smallidx<<","<<cellno<< std::endl;
-            debug();
-            return;
-        }
-        set(br*3+sr,bc*3+sc,(Aturn?1:2));
-        nextBig=sr*3+sc;
-        Aturn=!Aturn;
-        update(cellno);
-        checkfreemove();                                                                                         
+        winner = u.old_winner;
     }
-    int checkcellwin(int col){
-        int r[3]={1,1,1},c[3]={1,1,1},d[2]={1,1};
-        for(int i=0;i<3;i++){
-            for(int j=0;j<3;j++){
-                int e=get((col/3)*3 + i, (col%3)*3 + j);
-                r[i]*=e;
-                c[j]*=e;
-                if(i==j){
-                    d[0]*=e;
-                }
-                if(i+j==2){
-                    d[1]*=e;
-                }
-            }
+
+    int checkMetaWin() const{
+            for (uint32_t mask : WIN_MASKS) {
+            uint32_t line = meta & mask;
+            if (line == (mask & 0b010101010101010101)) return 1;
+            if (line == (mask & 0b101010101010101010)) return 2;
         }
-        for(int i=0;i<3;i++){
-            if(r[i]==1 || c[i]==1 ) return 1;
-            if(r[i]==8 || c[i]==8 ) return 2;
-        }
-        if(d[0]==1 || d[1]==1 ) return 1;
-        if(d[0]==8 || d[1]==8 ) return 2;
         return 0;
     }
-    void update(int col){
-        winners.change(col,checkcellwin(col));
-    }
-    void updateall(){
-        for(int i=0;i<9;i++){
-            update(i);
-        }
-    }
-    void debug(){
-        for(int i=0;i<5;i++){
-            std::cout<<"\n";
-        }
-        print();
-        std::cout<<"turn:"<<Aturn<<std::endl;
-        std::cout<<"freemove:"<<freemove<<std::endl;
-        std::cout<<"next big:"<<nextBig<<std::endl;
-        std::cout<<"winners:"<<winners.str()<<std::endl;
+    void legalMoves(std::vector<Move>& moves) const {
+        moves.clear();
 
+        if (next == 9){
+            for (int b = 0; b < 9; ++b){
+                if (((meta >> (2 * b)) & 3) == 0 && !isSmallFull(b)){
+                    for (int s = 0; s < 9; ++s){ //fancy ahh
+                        if (get(b, s) == 0)
+                            moves.push_back({(uint8_t)s, (uint8_t)b});
+                    }
+                }
+            }
+        } else {
+            int b = next;
+            //i wont forget that i still have to check wether board is still playable or not
+            if (((meta >> (2 * b)) & 3) == 0 && !isSmallFull(b)){
+                for (int s = 0; s < 9; ++s){
+                    if (get(b, s) == 0)
+                        moves.push_back({(uint8_t)s, (uint8_t)b});
+                }
+            }
+        }
     }
 };

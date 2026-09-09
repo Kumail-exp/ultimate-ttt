@@ -1,163 +1,329 @@
 #pragma once
 #include "Board.hpp"
 #include "Eval.hpp"
+#include "Move.hpp"
+#include "TT.hpp"
 #include <cmath>
-#include <chrono>
 #include <vector>
+#include <atomic>
+#include <thread>
+#include <chrono>
+inline double Minmax(Board& b, int depth, bool maximising,double alpha, double beta,long& nodes,int& killer) {
+    nodes++ ;
 
-extern Transpositiontable tt;
+    //winner type shift
+    if (b.winner == 1) return  10000+depth;
+    if (b.winner == 2) return -10000-depth;
+    if (b.winner == 3) return  0.0;
 
-float minmax(Board b,int depth,bool maximising){
-    int w=b.winnercheck();
-    if(w!=0){
-        return INFINITY*(w==1?1:-1);
-    }
-    std::vector<Move> moves= b.legalMoves();
-    if(moves.empty()){
-        return 0.0f;//draw type shi 
-    }
-    if(depth == 0){
-        return Eval(b);
-    }
-    if(maximising){
-        float max_eval=-INFINITY;
-        int rtg=b.nextBig;
-        for (Move x : moves) {
-            b.move(x.smallidx, x.bigidx);
-            float eval = minmax(b, depth - 1, false);
-            b.pop(x.smallidx,x.bigidx,rtg);
-            if(eval>max_eval){
-                max_eval=eval;
+
+    
+    //searching in tt
+    auto it=transpositionTable[b.i_hash&(TABLE_SIZE-1)];
+    if(it.key==b.i_hash){
+        if(it.depth!=-1){
+            if(it.depth >= depth){
+                //again as a reminder i hate alpha beta
+                if(it.flag == EXACT)
+                return it.eval;
+                
+                if(it.flag == LOWERBOUND)
+                alpha = std::max(alpha, it.eval);
+                
+                else if(it.flag == UPPERBOUND)
+                beta = std::min(beta, it.eval);
+                
+                if(alpha >= beta)
+                return it.eval;
             }
         }
-        return max_eval;
-    }else{
-        float min_eval=INFINITY;
-        int rtg=b.nextBig;
-        for (Move x : moves) {
-            b.move(x.smallidx, x.bigidx);
-            float eval = minmax(b, depth - 1, true);
-            b.pop(x.smallidx,x.bigidx,rtg);
-            if(eval<min_eval){
-                min_eval=eval;
-            }
-        }
-        return min_eval;
     }
-}
+    std::vector<Move> moves;
+    b.legalMoves(moves);
+    if (moves.empty()) return 0.0;
+    
+    if (depth == 0){ return Eval(b);}
 
-float minmax_ab(Board b,int depth,bool maximising,float alpha,float beta){
-    int w=b.winnercheck();
-    if(w!=0){
-        //prefer the fastest win type shi
-        float base = (w == 1) ? 1e6f : -1e6f;
-        return base - depth * (w == 1 ? 1.f : -1.f);
-    }
-    std::vector<Move> moves = b.legalMoves();
-    if(moves.empty()){
-        return 0.0f;//again float 
-    }
-
-    float cached;
-    if(tt.lookup(b, depth, cached, alpha, beta)) {
-        return cached;
-    }
-    if(depth==0){
-        float ev = Eval(b);
-        tt.store(b, depth, ev, alpha, beta);
-        return ev;
-    }
+    double originalAlpha = alpha;
+    double originalBeta = beta;
+    double best = maximising ? -INFINITY : +INFINITY;
+    Move bestMove = {9,9};
+    Move_ordering(moves,killer);
+    int champ=-1;
+    bool first=true;
+    int movenum=0;
     if(maximising){
-        float max_eval=-INFINITY;
-        int rtg=b.nextBig;
-        for (Move x : moves) {
-            b.move(x.smallidx, x.bigidx);
-            float eval = minmax_ab(b, depth - 1, false, alpha, beta);
-            b.pop(x.smallidx,x.bigidx,rtg);
-            if(eval>max_eval){
-                max_eval=eval;
+        double eval;
+        for(Move x : moves){
+            Board::Undo u;
+            b.make(x,u);
+            if (movenum < 3 || depth <= 3){
+                if(first){
+                    first=false;  
+                    eval = Minmax(b,depth-1,false,alpha,beta,nodes,killer);
+                }else{ 
+                    eval=Minmax(b,depth-1,false,alpha,alpha+1,nodes,killer);
+                    if(eval > alpha) eval = Minmax(b, depth-1, false, alpha, beta,nodes,killer);
+                }
+            }else{
+                eval = Minmax(b, depth - 2, false, alpha, alpha + 1, nodes, killer);
+                
+                if (eval > alpha) {
+                    eval = Minmax(b, depth - 1, false,alpha, beta, nodes, killer);
+                }
+            }
+            b.unmake(u);
+            if(eval > best){
+                best =eval;
+                bestMove=x;
+                champ=x.smallidx;
             }
             if(eval>alpha){
                 alpha=eval;
             }
-            if(beta<=alpha){
+            if(beta <= alpha){
                 break;
             }
+            movenum++;
         }
-        tt.store(b, depth, max_eval, alpha, beta);
-        return max_eval;
-    }else{
-        float min_eval=INFINITY;
-        int rtg=b.nextBig;
+    } else {
+        double eval;
         for (Move x : moves) {
-            b.move(x.smallidx, x.bigidx);
-            float eval = minmax_ab(b, depth - 1, true, alpha, beta);
-            b.pop(x.smallidx,x.bigidx,rtg);
-            if(eval<min_eval){
-                min_eval=eval;
+            Board::Undo u;
+            b.make(x, u);
+            if (movenum < 3 || depth <= 3){
+                if(first){
+                    first=false;
+                    eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
+                }else{ 
+                    eval = Minmax(b, depth-1, true, beta-1, beta,nodes,killer);
+                    if(eval <beta) eval = Minmax(b, depth-1, true, alpha, beta,nodes,killer);
+                }
+            }else{
+                eval = Minmax(b, depth - 2, true,beta - 1, beta, nodes, killer);
+
+                if (eval < beta) {
+                    eval = Minmax(b, depth - 1, true,alpha, beta, nodes, killer);
+                }
+            }
+            b.unmake(u);
+            if (eval < best) {
+                best = eval;
+                bestMove = x;
+                champ=x.smallidx;
             }
             if(eval<beta){
                 beta=eval;
             }
-            if(beta<=alpha){
-                break;
+            if(beta <= alpha){
+                break;  
             }
+            movenum++;
         }
-        tt.store(b, depth, min_eval, alpha, beta);
-        return min_eval;
     }
+    
+    Flag flag;
+    if(best <= originalAlpha)
+        flag = UPPERBOUND;
+    else if(best >= originalBeta)
+        flag = LOWERBOUND;
+    else
+        flag = EXACT;
+
+    store(b, depth, best, flag);
+    MOVE_IMPORTANCE[champ]+=(depth/100.0);
+    killer=champ;
+    return best;
 }
+
 struct Line{
-    Move move;
+    Move m;
     double eval;
     int depth;
 };
-Line best_move(int depth, bool maximising, Board b) {
-    std::vector<Move> moves = b.legalMoves();
+inline Line best_move(int depth, bool maximising, Board b,long& nodes,int& killer) {
+    if (b.winner != 0) {
+        return {{9, 9},0.0,depth};//ts already over
+    }
+    std::vector<Move> moves;
+    b.legalMoves(moves);
+
     if (moves.empty()) {
-        return {{-1, -1}, 0.0, depth};   // draw, no move
+        return {{9, 9}, 0.0, depth};
     }
 
-    //always seed with the first legal move so we never return ts {-1,-1} even when every child is a forced loss
     Line best = {moves[0], maximising ? -1e9 : 1e9, depth};
-    int rtg = b.nextBig;
     bool first = true;
 
-    for (Move x : moves) {
-        b.move(x.smallidx, x.bigidx);
-        float result = minmax_ab(b, depth - 1, !maximising,-INFINITY,INFINITY);
-        b.pop(x.smallidx, x.bigidx,rtg);
+    double alpha = -INFINITY;
+    double beta  = INFINITY;
 
-        if (first) {
-            best = {x, result, depth};
+    for(Move x :moves){
+        Board::Undo u;
+        b.make(x, u);
+        double result;
+        if (first){
+            // First move gets the full window
+            result = Minmax(
+                b, depth - 1, !maximising,
+                alpha, beta,
+                nodes, killer
+            );
+
             first = false;
-        } else if(maximising){
-            if (result > best.eval){
-                best = {x, result,depth};
+
+        } else if (maximising){
+            result = Minmax(
+                b, depth - 1, !maximising,
+                alpha, alpha + 1,
+                nodes, killer
+            );
+
+            if (result > alpha){
+                result = Minmax(
+                    b, depth - 1, !maximising,
+                    alpha, beta,
+                    nodes, killer
+                );
             }
+
         } else {
-            if(result < best.eval){
-                best = {x, result,depth};
+
+            //no respect search to strangers
+            result = Minmax(b, depth - 1, !maximising,beta - 1, beta,nodes, killer);
+            if (result < beta) {
+                result = Minmax(b, depth - 1, !maximising,alpha, beta, nodes, killer);
             }
+        }
+        b.unmake(u);
+        if (maximising){
+            if(result > best.eval){
+                best = {x, result, depth};
+            }
+            if (result > alpha)
+                alpha = result;
+        }else{
+            if (result < best.eval) {
+                best = {x, result, depth};
+            }
+            if (result < beta)
+                beta = result;
+        }
+        if (alpha >= beta)
+            break;
+    }
+    return best;
+}
+inline Line worker_bestmove(int depth,bool maximising,Board b,Move x,long& nodes,int killer){
+    Board::Undo u;
+    b.make(x, u);
+    double result = Minmax(b,depth - 1,!maximising,-INFINITY,INFINITY,nodes,killer);
+    b.unmake(u);
+    return {x, result, depth};
+}
+
+
+inline Line tbest_move(float time, bool maximising, Board b,long& nodes){
+    //highly inspired from zammus design
+    using Clock = std::chrono::high_resolution_clock;
+    using sec = std::chrono::duration<double>;
+    constexpr int THREADS = 4;//i M ON LOW END PC SRYY ^-^
+    nodes=0;
+    auto start= Clock::now();
+    auto softEnd= start + sec(time * 0.85);
+    auto hardEnd= start + sec(time * 0.96);
+
+    Line best = {{9, 9}, 0.0, 0};
+    double lastDepthTime = 0.0;
+    std::vector<Move> rootmoves;
+    b.legalMoves(rootmoves);
+    if (rootmoves.empty()) return best;
+    best.m = rootmoves[0];
+    int k=1;
+    //no risk gng
+    for (int depth = 8; depth <= 82; depth++) {
+        auto now = Clock::now();
+        if (now >= softEnd) break;
+
+        //dont start a thing u cant finish
+        if (depth > 1 && lastDepthTime > 0.0) {
+            double estimate = lastDepthTime * 4.0;
+            if (now + sec(estimate) > softEnd) break;
+        }
+
+        auto depthStart = Clock::now();
+
+        //here comes the part stolen from internet;
+        std::vector<Line> results(rootmoves.size());
+        std::vector<long> threadNodes(THREADS, 0);
+
+        std::atomic<size_t> next{0};
+
+        auto worker = [&](int tid){
+
+            int localKiller = k;
+
+            while (true) {
+
+                size_t i = next.fetch_add(1);
+
+                if (i >= rootmoves.size())
+                    break;
+
+                results[i] = worker_bestmove(
+                    depth,
+                    maximising,
+                    b,
+                    rootmoves[i],
+                    threadNodes[tid],
+                    localKiller
+                );
+            }
+        };
+
+        int threadCount = std::min(
+            THREADS,
+            static_cast<int>(rootmoves.size())
+        );
+
+        std::vector<std::thread> workers;
+        workers.reserve(threadCount);
+
+        for (int i = 0; i < threadCount; i++)
+            workers.emplace_back(worker, i);
+
+        for (auto& t : workers)
+            t.join();
+
+        nodes = 0;
+
+        for (long n : threadNodes)
+            nodes += n;
+
+        Line candidate = results[0];
+
+        for (size_t i = 1; i < results.size(); i++) {
+
+            if (maximising) {
+
+                if (results[i].eval > candidate.eval)
+                    candidate = results[i];
+
+            } else {
+
+                if (results[i].eval < candidate.eval)
+                    candidate = results[i];
+            }
+        }
+        auto depthEnd = Clock::now();
+        lastDepthTime =
+            sec(depthEnd - depthStart).count();
+        if (depthEnd < hardEnd) {
+            best = candidate;
+        } else {
+            break;//overshoot
         }
     }
 
     return best;
-}
-Line tbest_move(float time_ms,bool maximising, Board b){
-    double t=0.0;
-    using Clock = std::chrono::high_resolution_clock;
-    Line l={{-1,-1},0,0};
-    for(int i=5;i<25;i++){ 
-        auto start = Clock::now();
-        l=best_move(i,maximising,b);
-        auto end = Clock::now();
-
-        std::chrono::duration<double> elapsed = end - start;
-        t+=elapsed.count();
-        if(time_ms/2<=t){//atleast one loop
-            break;
-        }
-    }
-    return l;
 }

@@ -1,153 +1,139 @@
 #pragma once
+#include "Move.hpp"
 #include "Board.hpp"
-#include <unordered_map>
 
-enum Flag{
-     EXACT,LOWER_BOUND,UPPER_BOUND
-};
+//ts is for small board
+float MOVE_IMPORTANCE[9]={1.44,1.7,1.44,1.7,1,1.7,1.44,1.7,1.44};
 
-struct TTEntry{
-    float eval;
-    int depth;
-    uint32_t hash;
-    Flag flag;
-};
-
-class Transpositiontable{
-private:
-    std::unordered_map<uint32_t, TTEntry> table;
-    static const int MAX_ENTRIES = 10000000;
-    
-public:
-    uint32_t hash_board(Board b) {
-        uint32_t h = 0;
-        for(int i = 0; i < 9; i++) {
-            h ^= b.board[i].value;
-        }
-        //am i this dumb forgot to add following board details 
-        h ^= (uint32_t)b.Aturn;
-        h ^= (uint32_t)b.nextBig*31;
-        h ^= (uint32_t)b.freemove*97;
-        return h;
-    }
-    
-    bool lookup(Board b, int depth, float& result, float alpha, float beta) {
-        uint32_t h = hash_board(b);
-        auto it = table.find(h);
-        
-        if(it != table.end() && it->second.depth >= depth) {
-            if(it->second.flag == EXACT) {
-                result = it->second.eval;
-                return true;
-            }
-            //i hate alpha beta pruning so much so much this would just have been such a easy to grab from internet
-            if(it->second.flag == LOWER_BOUND && it->second.eval > alpha) {
-                alpha = it->second.eval;
-            }
-            if(it->second.flag == UPPER_BOUND && it->second.eval < beta) {
-                beta = it->second.eval;
-            }
-            if(alpha >= beta) {
-                result = it->second.eval;
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    void store(Board b, int depth, float eval, float alpha, float beta) {
-        if(table.size() >= MAX_ENTRIES) {
-            table.clear();
-        }
-        uint32_t h = hash_board(b);
-        
-        Flag f;
-        if(eval <= alpha) {
-            f = UPPER_BOUND;
-        } else if(eval >= beta) {
-            f = LOWER_BOUND;
-        } else {
-            f = EXACT;
-        }
-        
-        table[h] = {eval, depth, h, f};
-    }
-    
-    void clear() {
-        table.clear();
-    }
-};
-
-Transpositiontable tt;
-
-const float weights[9]={1.44, 1,  1.44,
+static constexpr double LOCAL_POS[9] ={1.44, 1,  1.44,
                 1,  1.71,   1,
                 1.44,   1,  1.44};
-const float cellWin_weight=50;
 
-Move relToUni(Move m){
-    return {(m.bigidx/3)*3+(m.smallidx/3),(m.bigidx%3)*3+(m.smallidx%3)};
-}
-float evalCell(int bigidx,Board b){
-    int x[3]={0},o[3]={0};
-    //row 
-    for(int i=0;i<3;i++){
-        int oc=0,xc=0;
-        for(int j=0;j<3;j++){
-            int e=b.get(relToUni({3*i+j,bigidx}));
-            oc+=e==2?1:0;
-            xc+=e==1?1:0;
+static constexpr double GLOBAL_WEIGHT[9] = {1.44, 1,  1.44,
+                1,  1.81,   1,
+                1.44,   1,  1.44};
+
+// classic 9-bit win masks (one bit per cell)
+static const int WIN9[8] = {
+    0b000000111, // 0 1 2
+    0b000111000, // 3 4 5
+    0b111000000, // 6 7 8
+    0b001001001, // 0 3 6
+    0b010010010, // 1 4 7
+    0b100100100, // 2 5 8
+    0b100010001, // 0 4 8
+    0b001010100  // 2 4 6
+};
+int POS_SCORE[512];
+
+void initPosScore() {
+    for (int bits = 0; bits < 512; ++bits) {
+        int score = 0;
+        for (int i = 0; i < 9; ++i) {
+            if (bits & (1 << i))
+                score += LOCAL_POS[i];
         }
-        if(oc==0){x[xc]++;}
-        if(xc==0){o[oc]++;}
-
-        oc=0,xc=0;
-        for(int j=0;j<3;j++){
-            int e=b.get(relToUni({3*j+i,bigidx}));
-            oc+=e==2?1:0;
-            xc+=e==1?1:0;
-        }
-        if(oc==0){x[xc]++;}
-        if(xc==0){o[oc]++;}
+        POS_SCORE[bits] = score;
     }
-    int oc=0,xc=0;
-    for(int i=0;i<3;i++){
-        int e=b.get(relToUni({4*i,bigidx}));
-        oc+=e==2?1:0;
-        xc+=e==1?1:0;
-    }
-    if(oc==0){x[xc]++;}
-    if(xc==0){o[oc]++;}
-
-    oc=0,xc=0;
-    for(int i=0;i<3;i++){
-        int e=b.get(relToUni({2*i+2,bigidx}));
-        oc+=e==2?1:0;
-        xc+=e==1?1:0;
-    }
-    if(oc==0){x[xc]++;}
-    if(xc==0){o[oc]++;}
-
-    return (7*x[2]+2*x[1])-(7*o[2]+2*o[1]);
 }
-float Eval(Board b){
-    float cached;
-    if(tt.lookup(b, 0, cached, -1e9, 1e9)) {
-        return cached;
+void Move_ordering(std::vector<Move>& legals,int small_killer){
+    //who better than the our beloved insertion sort
+    auto importance = [small_killer](const Move& move){
+        if (move.smallidx == small_killer)
+            return 1000000.0f; //killer move gets top ahh priority
+        return MOVE_IMPORTANCE[move.smallidx];
+    };
+    for (size_t i = 1; i < legals.size(); ++i){
+        Move key = legals[i];
+        size_t j = i;
+        while (j > 0 && importance(legals[j - 1]) < importance(key)){
+            legals[j] = legals[j - 1];
+            --j;
+        }
+        legals[j] = key;
     }
-    
-    //assuming the board hasnt been won yet
-    float sval=0.0;
-    for(int i=0;i<9;i++){
-        float val=0.0;
-        if(b.winners.cellAt(i)!=0){
-            val+=cellWin_weight*weights[i]*(-2*b.winners.cellAt(i)+3);
+}
+inline int evaluateMeta(const Board& b) {
+    int xBits = 0;
+    int oBits = 0;
+    for (int g=0; g < 9; ++g) {
+        int w =(b.meta >> (2 * g)) & 3;
+        if(w == 1)
+            xBits |=(1 << g);
+        else if(w==2)
+            oBits|=(1 << g);
+    }
+
+    int score = 0;
+    score += POS_SCORE[xBits];
+    score -= POS_SCORE[oBits];
+    for (int mask : WIN9){
+        //i could have just copy pasted it from below i am dumb
+        int x = __builtin_popcount(xBits & mask);
+        int o = __builtin_popcount(oBits & mask);
+        if (x == 2 && o == 0)
+            score += 1000;
+        else if (x == 1 && o == 0)
+            score += 50;
+        if (o == 2 && x == 0)
+            score -= 1000;
+        else if (o == 1 && x == 0)
+            score -= 50;
+    }
+    return score;
+}
+//extract the funky ahh from the bits
+inline void extractBits(uint32_t s, int& xBits, int& oBits) {
+    xBits = oBits = 0;
+    for (int i = 0; i < 9; ++i) {
+        int cell = (s>>(2*i))&3;
+        if(cell==1){
+            xBits|=(1<<i);
         }else{
-            val+=evalCell(i,b);
+            if(cell==2){
+                 oBits|=(1<<i);
+            }
         }
-        sval+=val*weights[i];
     }
-    
-    tt.store(b, 0, sval, -1e9, 1e9);
-    return sval;
+}
+
+inline int evaluateLocal(uint32_t s, bool meIsX){
+    int xBits, oBits;
+    extractBits(s, xBits, oBits);
+    int myBits  = meIsX ? xBits : oBits;
+    int oppBits = meIsX ? oBits : xBits;
+    int score = POS_SCORE[myBits] - POS_SCORE[oppBits];
+    // threats
+    for (int mask:WIN9){
+        int my  = __builtin_popcount(myBits  & mask);
+        int opp = __builtin_popcount(oppBits & mask);
+
+        if (my == 2 && opp == 0)
+            score += 28;
+        else if (my == 1 && opp == 0)
+            score += 5;
+        if (opp == 2 && my == 0)
+            score -= 28;
+        else if (opp == 1 && my == 0)
+            score -= 5;
+    }
+
+    return score;
+}
+inline  float Eval(const Board& b) {
+    //relative to only x perspective unlike zammy
+    float score = evaluateMeta(b);
+    for (int g = 0; g < 9; ++g) {
+        int w =((b.meta >> (2 * g)) & 3);
+        int weight = GLOBAL_WEIGHT[g];
+        if(w==1){
+            score+=weight*100.0f;
+        }else if (w == 2){
+            score-=weight*100.0f;
+        }else if (w==0){
+            //local threats idea was mine tbh i recommended zammu to add it
+            score += evaluateLocal(b.small[g], true) * weight;
+        }
+    }
+    return score;
 }
