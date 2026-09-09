@@ -5,6 +5,8 @@
 #include <string>
 #include <fstream>
 #include <chrono>
+#include <sstream>
+#include <unordered_map>
 using Clock = std::chrono::high_resolution_clock;
 using namespace std;
 
@@ -31,6 +33,64 @@ void printBoard(const Board& b) {
     cout << "Next board: " << (b.next == 9 ? "FREE" : to_string(b.next)) << '\n';
     cout << "Player to move: " << (b.player == 1 ? "X" : "O") << "\n\n";
 }
+inline std::unordered_map<uint64_t, Move> openingBook;
+
+// ------------------------------------------------------------
+// Load Openings.txt into the map
+// File format (one line per entry):
+//   hash,bigidx,smallidx
+// ------------------------------------------------------------
+bool loadOpeningBook(const std::string& filename = "Openings.txt")
+{
+    openingBook.clear();
+
+    std::ifstream file(filename);
+    if (!file) {
+        std::cerr << "Could not open " << filename << "\n";
+        return false;
+    }
+
+    std::string line;
+    int count = 0;
+
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+
+        std::stringstream ss(line);
+        std::string part;
+
+        // hash
+        if (!std::getline(ss, part, ',')) continue;
+        uint64_t hash = std::stoull(part);
+
+        // bigidx
+        if (!std::getline(ss, part, ',')) continue;
+        uint8_t big = static_cast<uint8_t>(std::stoi(part));
+
+        // smallidx
+        if (!std::getline(ss, part, ',')) continue;
+        uint8_t small = static_cast<uint8_t>(std::stoi(part));
+
+        Move m;
+        m.bigidx   = big;
+        m.smallidx = small;
+
+        openingBook[hash] = m;
+        ++count;
+    }
+
+    std::cout << "Loaded " << count << " opening moves from " << filename << "\n";
+    return true;
+}
+bool probeOpeningBook(const Board& b, Move& out)
+{
+    auto it = openingBook.find(b.i_hash);
+    if (it == openingBook.end())
+        return false;
+
+    out = it->second;
+    return true;
+}
 void add_to_hist(const Board& b){
 
     std::ofstream out("hist.txt", std::ios::app);
@@ -54,6 +114,7 @@ int main() {
     int movenum=0;
     init();
     initPosScore();
+    loadOpeningBook("Openings.txt");
     Board b;
     Board::Undo u;
     
@@ -107,21 +168,28 @@ int main() {
                 if (!ok) cout << "illegal move\n";
             }
             b.make(m, u);
-        }else{
-            auto start = Clock::now();
-            long nodes;
-            Line l = tbest_move(9.0f, false, b,nodes);
-            auto end = Clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            double n=nodes/1000000.0;
-            double t=elapsed.count();
-            cout << "time: " << t<<endl;
-            cout << "nodes(M): " <<n <<endl;
-            cout << "million nodes per second: " <<(n/t) <<endl;
-            cout << "bot plays " <<(int)l.m.smallidx <<","<< (int)l.m.bigidx<<endl;
-            cout << "evaluation: "<< l.eval<<endl;
-            cout << "depth: " <<l.depth <<endl;
-            b.make(l.m,u);
+        } else {
+            Move bookMove;
+            if (probeOpeningBook(b, bookMove)) {
+                cout << "Book move: " << (int)bookMove.smallidx
+                    << "," << (int)bookMove.bigidx << endl;
+                b.make(bookMove, u);
+            } else {
+                auto start = Clock::now();
+                long nodes;
+                Line l = tbest_move(9.0f, false, b, nodes);
+                auto end = Clock::now();
+                std::chrono::duration<double> elapsed = end - start;
+                double n = nodes / 1000000.0;
+                double t = elapsed.count();
+                cout << "time: " << t << endl;
+                cout << "nodes(M): " << n << endl;
+                cout << "million nodes per second: " << (n / t) << endl;
+                cout << "bot plays " << (int)l.m.smallidx << "," << (int)l.m.bigidx << endl;
+                cout << "evaluation: " << l.eval << endl;
+                cout << "depth: " << l.depth << endl;
+                b.make(l.m, u);
+            }
         }
     }
 
